@@ -337,14 +337,14 @@ prevDayBtn.addEventListener("click", setPreviousDay);
 nextDayBtn.addEventListener("click", setNextDay);
 datePickerEl.addEventListener("change", handleDatePickerChange);
 muteBtn.addEventListener("click", toggleMute);
-/*testAdhanBtn.addEventListener("click", () => {
+testAdhanBtn.addEventListener("click", () => {
   if (isMuted) {
     setStatus("🔇 Muted - unmute to hear Azan");
     return;
   }
   playAdhan();
   setStatus("🔊 Adhan is playing...");
-});*/
+});
 adhanAudioEl.addEventListener("ended", () => {
   setStatus("");
 });
