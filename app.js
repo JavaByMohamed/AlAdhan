@@ -16,11 +16,18 @@ const STOCKHOLM_PROFILE = {
   tune: "0,-25,0,0,0,0,0,18,0"
 };
 
+const KISTA_PROFILE = {
+  latitude: 59.4032,
+  longitude: 17.9448
+};
+
 const statusEl = document.getElementById("status");
 const liveClockEl = document.getElementById("live-clock");
 // const liveClockDateEl = document.getElementById("live-clock-date");
 // const liveClockWeekDayEl = document.getElementById("live-clock-weekday");
 const hijriEl = document.getElementById("hijri");
+const weatherCurrentEl = document.getElementById("weather-current");
+const weatherExtraEl = document.getElementById("weather-extra");
 const clockHourEl = document.getElementById("clock-hour");
 const clockMinuteEl = document.getElementById("clock-minute");
 const clockSecondEl = document.getElementById("clock-second");
@@ -41,6 +48,10 @@ let fetchInFlight = false;
 let selectedDate = new Date();
 let isMuted = localStorage.getItem("adhanMuted") === "true";
 let lastPlayedPrayer = null;
+let weatherFetchInFlight = false;
+let lastWeatherFetchAt = 0;
+
+const WEATHER_REFRESH_MS = 10 * 60 * 1000;
 
 const stockholmTimeFormatter = new Intl.DateTimeFormat("sv-SE", {
   timeZone: "Europe/Stockholm",
@@ -246,6 +257,53 @@ function setStatus(message, isError = false) {
   statusEl.style.color = isError ? "#b91c1c" : "#374151";
 }
 
+function getWeatherLabel(code) {
+  if (code === 0) return "Clear";
+  if (code >= 1 && code <= 3) return "Partly cloudy";
+  if (code >= 45 && code <= 48) return "Fog";
+  if ((code >= 51 && code <= 57) || (code >= 61 && code <= 67)) return "Rain";
+  if (code >= 71 && code <= 77) return "Snow";
+  if (code >= 80 && code <= 82) return "Rain showers";
+  if (code >= 85 && code <= 86) return "Snow showers";
+  if (code >= 95) return "Thunderstorm";
+  return "Unknown";
+}
+
+async function fetchCurrentWeather() {
+  if (weatherFetchInFlight) return;
+  weatherFetchInFlight = true;
+
+  const weatherUrl =
+    `https://api.open-meteo.com/v1/forecast` +
+    `?latitude=${encodeURIComponent(KISTA_PROFILE.latitude)}` +
+    `&longitude=${encodeURIComponent(KISTA_PROFILE.longitude)}` +
+    `&current=temperature_2m,apparent_temperature,weather_code,wind_speed_10m` +
+    `&timezone=Europe%2FStockholm`;
+
+  try {
+    const response = await fetch(weatherUrl);
+    const payload = await response.json();
+    const current = payload?.current;
+    if (!response.ok || !current) {
+      throw new Error("Could not load Kista weather.");
+    }
+
+    const roundedTemp = Math.round(current.temperature_2m);
+    const roundedFeelsLike = Math.round(current.apparent_temperature);
+    const roundedWind = Math.round(current.wind_speed_10m);
+    const weatherLabel = getWeatherLabel(Number(current.weather_code));
+
+    weatherCurrentEl.textContent = `${roundedTemp}°C • ${weatherLabel}`;
+    weatherExtraEl.textContent = `Feels like ${roundedFeelsLike}°C • Wind ${roundedWind} km/h`;
+    lastWeatherFetchAt = Date.now();
+  } catch (error) {
+    weatherCurrentEl.textContent = "Weather unavailable";
+    weatherExtraEl.textContent = error instanceof Error ? error.message : "Failed to fetch weather.";
+  } finally {
+    weatherFetchInFlight = false;
+  }
+}
+
 function renderTimings(timings) {
   currentTimings = timings;
   lastPlayedPrayer = null; // Reset for new date
@@ -360,6 +418,7 @@ adhanAudioEl.addEventListener("ended", () => {
 updateDatePicker();
 updateMuteButton();
 fetchPrayerTimes();
+fetchCurrentWeather();
 
 clock();
 updateClock();
@@ -371,5 +430,9 @@ setInterval(() => {
   const currentDate = getTodayDate();
   if (!fetchInFlight && renderedForDate && currentDate !== renderedForDate) {
     fetchPrayerTimes();
+  }
+
+  if (Date.now() - lastWeatherFetchAt >= WEATHER_REFRESH_MS) {
+    fetchCurrentWeather();
   }
 }, 1000);
