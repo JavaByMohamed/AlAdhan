@@ -18,8 +18,8 @@ const STOCKHOLM_PROFILE = {
 
 const statusEl = document.getElementById("status");
 const liveClockEl = document.getElementById("live-clock");
-const liveClockDateEl = document.getElementById("live-clock-date");
-const liveClockWeekDayEl = document.getElementById("live-clock-weekday");
+// const liveClockDateEl = document.getElementById("live-clock-date");
+// const liveClockWeekDayEl = document.getElementById("live-clock-weekday");
 const hijriEl = document.getElementById("hijri");
 const clockHourEl = document.getElementById("clock-hour");
 const clockMinuteEl = document.getElementById("clock-minute");
@@ -131,8 +131,17 @@ function updateClock() {
   clockMinuteEl.style.transform = `translateX(-50%) rotate(${minuteAngle}deg)`;
   clockSecondEl.style.transform = `translateX(-50%) rotate(${secondAngle}deg)`;
 
+//  liveClockEl.textContent = stockholmTimeFormatter.format(now);
+//  liveClockDateEl.textContent = stockholmWeekDayFormatter.format(now) + " " + stockholmDateFormatter.format(now);
+//  hijriEl.textContent = `${stockholmHijriFormatter.format(now)}`;
+}
+
+function clock() {
+  const now = new Date();
+  const stockholmParts = getStockholmParts(now);
+
+  setTimeout(clock, 1000);
   liveClockEl.textContent = stockholmTimeFormatter.format(now);
-  liveClockDateEl.textContent = stockholmWeekDayFormatter.format(now) + " " + stockholmDateFormatter.format(now);
   hijriEl.textContent = `${stockholmHijriFormatter.format(now)}`;
 }
 
@@ -352,8 +361,10 @@ updateDatePicker();
 updateMuteButton();
 fetchPrayerTimes();
 
+clock();
 updateClock();
 setInterval(() => {
+  clock();
   updateClock();
   updateNextPrayerHighlight();
 

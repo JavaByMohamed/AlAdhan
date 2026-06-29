@@ -48,8 +48,11 @@ h1 {
 
 .clock-card,
 .result {
+  position: absolute;
+  right: 0;
   border-radius: 14px;
   padding: 1rem;
+  margin-right: 55px;
 }
 
 .clock-card {
