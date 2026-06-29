@@ -1,0 +1,64 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>AlAdhan - Daily Prayer Times</title>
+  <link rel="stylesheet" href="./styles.css" />
+</head>
+<body>
+  <main class="container">
+    <h1></h1>
+    <p class="subtitle"></p>
+
+    <div class="preview-grid">
+      <section class="clock-card">
+        <p class="section-label"></p>
+        <div class="wall-clock" aria-label="Analog wall clock">
+          <div class="wall-clock-center"></div>
+          <div class="wall-clock-hand wall-clock-hour" id="clock-hour"></div>
+          <div class="wall-clock-hand wall-clock-minute" id="clock-minute"></div>
+          <div class="wall-clock-hand wall-clock-second" id="clock-second"></div>
+        </div>
+        <div id="live-clock" class="live-clock">--:--:--</div>
+        <p id="live-clock-date" class="live-clock-date">----</p>
+        <p id="hijri" class="hijri">----</p>
+        <p class="subtitle"></p>
+      </section>
+
+      <section class="result" id="result">
+        <div class="result-head">
+          <div class="date-nav">
+            <button id="prev-day-btn" type="button">← Prev</button>
+            <input id="date-picker" type="date" />
+            <button id="next-day-btn" type="button">Next →</button>
+          </div>
+          <button id="load-btn" type="button">Refresh</button>
+        </div>
+        <table>
+          <thead>
+            <tr>
+              <th>Prayer</th>
+              <th>Time</th>
+              <th>أذان</th>
+            </tr>
+          </thead>
+          <tbody id="timings-body"></tbody>
+        </table>
+      </section>
+    </div>
+
+    <p id="status" class="status"></p>
+  </main>
+
+  <!-- Audio will be generated via Web Audio API -->
+  <audio id="adhan-audio">
+    <source src="./Most Beautiful Azan Emotional Azan Heart Soothing By Sheikh Mohammed Al Ghazali AWAZ - AWAZ (128k).mp3" type="audio/mpeg">
+  </audio>
+
+  <button id="mute-btn" class="mute-btn" type="button" title="Toggle Adhan sound">🔊</button>
+<!--  <button id="test-adhan-btn" class="test-btn" type="button" title="Test Adhan sound">🔈 Test</button>-->
+
+  <script src="./app.js"></script>
+</body>
+</html>
