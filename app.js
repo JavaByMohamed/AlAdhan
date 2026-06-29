@@ -342,8 +342,8 @@ testAdhanBtn.addEventListener("click", () => {
     setStatus("🔇 Muted - unmute to hear Azan");
     return;
   }
+  adhanAudioEl.muted = false;
   playAdhan();
-  setStatus("🔊 Adhan is playing...");
 });
 adhanAudioEl.addEventListener("ended", () => {
   setStatus("");
