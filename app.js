@@ -189,6 +189,7 @@ function checkAndPlayAdhan(prayerTimes, nowMinutes) {
 
 function playAdhan() {
   adhanAudioEl.currentTime = 0;
+  adhanAudioEl.muted = false;
   adhanAudioEl.play()
     .then(() => {
       console.log("✅ Adhan playing");
@@ -210,6 +211,9 @@ function toggleMute() {
     adhanAudioEl.pause();
     adhanAudioEl.currentTime = 0;
     setStatus("");
+  } else {
+    // Unmute the audio element when user enables sound
+    adhanAudioEl.muted = false;
   }
   
   updateMuteButton();
