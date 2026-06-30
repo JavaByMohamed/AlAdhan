@@ -9,15 +9,19 @@ body {
   background: #f4f7fb;
   color: #ffffff;
   background-image: url("./img_2.png");
-  font-size: 30px;
+  background-repeat: no-repeat;
+  background-position: center;
+  background-size: cover;
+  font-size: clamp(16px, 1.2vw + 0.65rem, 24px);
+  min-height: 100vh;
 }
 
 .container {
-  max-width: 980px;
-  margin: 2rem auto;
+  max-width: 1120px;
+  margin: clamp(0.75rem, 2.5vw, 2rem) auto;
   background: rgb(255 255 255 / 0);
   border-radius: 12px;
-  padding: 1.5rem;
+  padding: clamp(0.75rem, 2.5vw, 1.5rem);
   /*box-shadow: 0 10px 25px rgba(0, 0, 0, 0.08);*/
 }
 
@@ -40,7 +44,7 @@ h1 {
 
 .preview-grid {
   display: grid;
-  grid-template-columns: minmax(240px, 320px) 1fr;
+  grid-template-columns: 1fr;
   gap: 1rem;
   margin-top: 1.25rem;
   align-items: stretch;
@@ -48,11 +52,10 @@ h1 {
 
 .clock-card,
 .result {
-  position: absolute;
-  left: 0;
+  position: relative;
   border-radius: 14px;
   padding: 1rem;
-  margin-left: 55px;
+  margin-left: 0;
 }
 
 .clock-card {
@@ -178,7 +181,8 @@ h1 {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 0.75rem;
+  gap: 1rem;
+  flex-wrap: wrap;
   margin-bottom: 0.75rem;
 }
 
@@ -194,14 +198,20 @@ h1 {
 }
 
 .date-nav button {
-  padding: 0.5rem 0.8rem;
-  font-size: 0.85rem;
+  padding: 0.45rem 0.75rem;
+  font-size: 0.95rem;
 }
 
 .date-nav input[type="date"] {
-  padding: 0.5rem;
-  font-size: 0.85rem;
+  padding: 0.45rem 0.6rem;
+  font-size: 0.95rem;
   border: 1px solid #d1d5db;
+}
+
+.table-wrap {
+  width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
 }
 
 input,
@@ -270,6 +280,7 @@ button:hover {
 
 table {
   width: 100%;
+  min-width: 320px;
   border-collapse: collapse;
 }
 
@@ -313,11 +324,69 @@ tbody tr.is-next-prayer td:first-child::after {
 .weather-current,
 .weather-extra {
   margin: 0.2rem 0;
-  font-size: 0.85rem;
+  font-size: 0.95rem;
+}
+
+@media (max-width: 1024px) {
+  .container {
+    max-width: 100%;
+  }
 }
 
 @media (max-width: 760px) {
   .preview-grid {
     grid-template-columns: 1fr;
+  }
+
+  .result,
+  .clock-card {
+    padding: 0.75rem;
+  }
+
+  .result-head {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .date-nav {
+    justify-content: space-between;
+  }
+
+  .date-nav button,
+  .date-nav input[type="date"],
+  #load-btn {
+    width: 100%;
+  }
+
+  .mute-btn {
+    width: 44px;
+    height: 44px;
+    font-size: 1.25rem;
+    top: 0.6rem;
+    right: 0.6rem;
+  }
+
+  .test-btn {
+    top: 3.9rem;
+    right: 0.6rem;
+    font-size: 0.75rem;
+    padding: 0.45rem 0.7rem;
+  }
+
+  th,
+  td {
+    padding: 0.5rem;
+    font-size: 0.95rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .container {
+    padding: 0.6rem;
+    margin: 0.5rem auto;
+  }
+
+  .weather-title {
+    font-size: 0.9rem;
   }
 }
