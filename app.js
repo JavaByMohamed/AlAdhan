@@ -52,6 +52,7 @@ let weatherFetchInFlight = false;
 let lastWeatherFetchAt = 0;
 
 const WEATHER_REFRESH_MS = 10 * 60 * 1000;
+const PAGE_AUTO_REFRESH_MS = 60 * 1000;
 
 const stockholmTimeFormatter = new Intl.DateTimeFormat("sv-SE", {
   timeZone: "Europe/Stockholm",
@@ -436,3 +437,12 @@ setInterval(() => {
     fetchCurrentWeather();
   }
 }, 1000);
+
+setInterval(() => {
+  const viewingToday = getSelectedDateFormatted() === getTodayDate();
+  if (!viewingToday || !adhanAudioEl.paused || fetchInFlight || document.visibilityState !== "visible") {
+    return;
+  }
+
+  window.location.reload();
+}, PAGE_AUTO_REFRESH_MS);
