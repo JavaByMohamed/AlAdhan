@@ -347,6 +347,42 @@ tbody td.is-next-prayer::after {
   font-size: 0.95rem;
 }
 
+.sl-traffic-card {
+  margin: 0;
+  padding: 0.75rem;
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  background: rgb(0 0 0 / 0.18);
+}
+
+.sl-traffic-grid {
+  margin-top: 0.8rem;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.75rem;
+}
+
+.sl-traffic-title {
+  margin: 0 0 0.35rem;
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: #e5f3ff;
+}
+
+.sl-traffic-status {
+  margin: 0.2rem 0;
+  font-size: 0.95rem;
+}
+
+.sl-traffic-list {
+  margin: 0.25rem 0 0;
+  padding-left: 1.2rem;
+}
+
+.sl-traffic-list li {
+  margin: 0.2rem 0;
+}
+
 @media (max-width: 1024px) {
   .container {
     max-width: 100%;
@@ -379,6 +415,10 @@ tbody td.is-next-prayer::after {
   }
 
   .manual-time-controls {
+    grid-template-columns: 1fr;
+  }
+
+  .sl-traffic-grid {
     grid-template-columns: 1fr;
   }
 

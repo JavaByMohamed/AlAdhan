@@ -29,6 +29,9 @@ const KISTA_PROFILE = {
   latitude: 59.4032,
   longitude: 17.9448
 };
+const KISTA_SL_SITE_ID = 9302;
+const NORGEGATAN_SL_SITE_ID = 3759;
+const NORGEGATAN_KISTA_LINES = new Set(["179", "685", "687"]);
 
 const statusEl = document.getElementById("status");
 const liveClockEl = document.getElementById("live-clock");
@@ -37,6 +40,10 @@ const liveClockEl = document.getElementById("live-clock");
 const hijriEl = document.getElementById("hijri");
 const weatherCurrentEl = document.getElementById("weather-current");
 const weatherExtraEl = document.getElementById("weather-extra");
+const slTrafficStatusEl = document.getElementById("sl-traffic-status");
+const slTrafficListEl = document.getElementById("sl-traffic-list");
+const slBusStatusEl = document.getElementById("sl-bus-status");
+const slBusListEl = document.getElementById("sl-bus-list");
 const clockHourEl = document.getElementById("clock-hour");
 const clockMinuteEl = document.getElementById("clock-minute");
 const clockSecondEl = document.getElementById("clock-second");
@@ -65,8 +72,13 @@ let isMuted = localStorage.getItem("adhanMuted") === "true";
 let lastPlayedPrayer = null;
 let weatherFetchInFlight = false;
 let lastWeatherFetchAt = 0;
+let slTrafficFetchInFlight = false;
+let lastSlTrafficFetchAt = 0;
+let slBusFetchInFlight = false;
+let lastSlBusFetchAt = 0;
 
 const WEATHER_REFRESH_MS = 10 * 60 * 1000;
+const SL_TRAFFIC_REFRESH_MS = 5 * 60 * 1000;
 const PAGE_AUTO_REFRESH_MS = 60 * 1000;
 const CUSTOM_TIMINGS_STORAGE_KEY = "customPrayerTimingsByDate";
 let customTimingsByDate = loadCustomTimingsByDate();
@@ -400,6 +412,163 @@ function getWeatherLabel(code) {
   return "Unknown";
 }
 
+function parseDisplayMinutes(displayValue) {
+  const match = String(displayValue || "").match(/^(\d{2}):(\d{2})$/);
+  if (!match) return null;
+  return Number(match[1]) * 60 + Number(match[2]);
+}
+
+function isKistaArrivalTowardCity(departure) {
+  const destination = String(departure?.destination || "").toLowerCase();
+  const direction = String(departure?.direction || "").toLowerCase();
+  const stopPointDesignation = String(departure?.stop_point?.designation || "");
+  return (
+    stopPointDesignation === "2" &&
+    (destination.includes("t-centralen") ||
+      direction.includes("kungsträdgården") ||
+      direction.includes("kungstradgarden"))
+  );
+}
+
+function getMinutesUntilDisplay(displayValue) {
+  const targetMinutes = parseDisplayMinutes(displayValue);
+  if (targetMinutes === null) return null;
+  const nowMinutes = getStockholmMinutes();
+  let delta = Math.round(targetMinutes - nowMinutes);
+  if (delta < 0) delta += 24 * 60;
+  return delta;
+}
+
+function getDepartureTimestamp(departure) {
+  const value = departure?.expected || departure?.scheduled;
+  const timestamp = Date.parse(String(value || ""));
+  return Number.isNaN(timestamp) ? null : timestamp;
+}
+
+function renderSlTrafficList(arrivals) {
+  if (!slTrafficStatusEl || !slTrafficListEl) return;
+  slTrafficListEl.innerHTML = "";
+
+  if (arrivals.length === 0) {
+    slTrafficStatusEl.textContent = "No upcoming train arrivals found right now.";
+    return;
+  }
+
+  slTrafficStatusEl.textContent = `Next ${arrivals.length} train arrival(s) to Kista platform toward city.`;
+  for (const departure of arrivals) {
+    const listItem = document.createElement("li");
+    const lineDesignation = departure?.line?.designation ? `Line ${departure.line.designation}` : "Metro";
+    const directionLabel = departure?.direction || departure?.destination || "Kungsträdgården/T-Centralen";
+    const minutesUntil = getMinutesUntilDisplay(departure.display);
+    const etaLabel = minutesUntil === null ? "ETA unknown" : `${minutesUntil} min`;
+    listItem.textContent = `${departure.display} • ${etaLabel} • ${lineDesignation} • ${directionLabel}`;
+    slTrafficListEl.appendChild(listItem);
+  }
+}
+
+async function fetchSlTrafficDepartures() {
+  if (!slTrafficStatusEl || !slTrafficListEl || slTrafficFetchInFlight) return;
+  slTrafficFetchInFlight = true;
+
+  const url =
+    `https://transport.integration.sl.se/v1/sites/${encodeURIComponent(KISTA_SL_SITE_ID)}/departures` +
+    `?transport=METRO&forecast=1200`;
+
+  try {
+    const response = await fetch(url);
+    const payload = await response.json();
+    if (!response.ok || !Array.isArray(payload?.departures)) {
+      throw new Error("Could not load SL departures for Kista.");
+    }
+
+    const filteredDepartures = payload.departures
+      .filter((departure) => isKistaArrivalTowardCity(departure))
+      .sort((a, b) => {
+        const aMinutes = parseDisplayMinutes(a.display) ?? 0;
+        const bMinutes = parseDisplayMinutes(b.display) ?? 0;
+        return aMinutes - bMinutes;
+      });
+
+    renderSlTrafficList(filteredDepartures);
+    lastSlTrafficFetchAt = Date.now();
+  } catch (error) {
+    slTrafficStatusEl.textContent =
+      error instanceof Error ? error.message : "Failed to fetch SL departures.";
+    slTrafficListEl.innerHTML = "";
+  } finally {
+    slTrafficFetchInFlight = false;
+  }
+}
+
+function isNorgegatanBusTowardKista(departure) {
+  const lineDesignation = String(departure?.line?.designation || "");
+  const destination = String(departure?.destination || "").toLowerCase();
+  const direction = String(departure?.direction || "").toLowerCase();
+  return (
+    NORGEGATAN_KISTA_LINES.has(lineDesignation) &&
+    (destination.includes("kista") || direction.includes("kista"))
+  );
+}
+
+function renderNorgegatanBusList(arrivals) {
+  if (!slBusStatusEl || !slBusListEl) return;
+  slBusListEl.innerHTML = "";
+
+  if (arrivals.length === 0) {
+    slBusStatusEl.textContent = "No upcoming buses found for lines 179/685/687 toward Kista right now.";
+    return;
+  }
+
+  slBusStatusEl.textContent = `Found ${arrivals.length} upcoming bus arrival(s) at Norgegatan toward Kista.`;
+  for (const departure of arrivals) {
+    const listItem = document.createElement("li");
+    const lineDesignation = departure?.line?.designation ? `Line ${departure.line.designation}` : "Bus";
+    const destinationLabel = departure?.destination || "Kista centrum";
+    const minutesUntil = getMinutesUntilDisplay(departure.display);
+    const etaLabel = minutesUntil === null ? "ETA unknown" : `${minutesUntil} min`;
+    listItem.textContent = `${departure.display} • ${etaLabel} • ${lineDesignation} • ${destinationLabel}`;
+    slBusListEl.appendChild(listItem);
+  }
+}
+
+async function fetchNorgegatanBusArrivals() {
+  if (!slBusStatusEl || !slBusListEl || slBusFetchInFlight) return;
+  slBusFetchInFlight = true;
+  slBusStatusEl.textContent = "Loading bus arrivals at Norgegatan...";
+
+  const url =
+    `https://transport.integration.sl.se/v1/sites/${encodeURIComponent(NORGEGATAN_SL_SITE_ID)}/departures` +
+    `?transport=BUS&forecast=1200`;
+
+  try {
+    const response = await fetch(url);
+    const payload = await response.json();
+    if (!response.ok || !Array.isArray(payload?.departures)) {
+      throw new Error("Could not load bus arrivals for Norgegatan.");
+    }
+
+    const filteredDepartures = payload.departures
+      .filter((departure) => isNorgegatanBusTowardKista(departure))
+      .sort((a, b) => {
+        const aTimestamp = getDepartureTimestamp(a);
+        const bTimestamp = getDepartureTimestamp(b);
+        if (aTimestamp !== null && bTimestamp !== null) return aTimestamp - bTimestamp;
+        const aMinutes = parseDisplayMinutes(a.display) ?? 0;
+        const bMinutes = parseDisplayMinutes(b.display) ?? 0;
+        return aMinutes - bMinutes;
+      });
+
+    renderNorgegatanBusList(filteredDepartures);
+    lastSlBusFetchAt = Date.now();
+  } catch (error) {
+    slBusStatusEl.textContent =
+      error instanceof Error ? error.message : "Failed to fetch bus arrivals.";
+    slBusListEl.innerHTML = "";
+  } finally {
+    slBusFetchInFlight = false;
+  }
+}
+
 async function fetchCurrentWeather() {
   if (weatherFetchInFlight) return;
   weatherFetchInFlight = true;
@@ -576,6 +745,8 @@ initializeManualPrayerControls();
 updateMuteButton();
 fetchPrayerTimes();
 fetchCurrentWeather();
+fetchSlTrafficDepartures();
+fetchNorgegatanBusArrivals();
 
 clock();
 updateClock();
@@ -591,6 +762,14 @@ setInterval(() => {
 
   if (Date.now() - lastWeatherFetchAt >= WEATHER_REFRESH_MS) {
     fetchCurrentWeather();
+  }
+
+  if (Date.now() - lastSlTrafficFetchAt >= SL_TRAFFIC_REFRESH_MS) {
+    fetchSlTrafficDepartures();
+  }
+
+  if (Date.now() - lastSlBusFetchAt >= SL_TRAFFIC_REFRESH_MS) {
+    fetchNorgegatanBusArrivals();
   }
 }, 1000);
 

@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>AlAdhan - Daily Prayer Times</title>
-  <link rel="stylesheet" href="./styles.css" />
+  <link rel="stylesheet" href="./styles.css?v=20260706-1" />
 </head>
 <body>
   <main class="container">
@@ -16,7 +16,7 @@
         <div id="live-clock" class="live-clock">--:--:--</div>
         <p id="hijri" class="hijri">----</p>
         <section class="weather-card" aria-live="polite">
-          <p class="weather-title">Kista Weather</p>
+          <p class="weather-title">Kista väder</p>
           <p id="weather-current" class="weather-current">Loading weather...</p>
           <p id="weather-extra" class="weather-extra"></p>
         </section>
@@ -43,6 +43,18 @@
             <tbody id="timings-body"></tbody>
           </table>
         </div>
+        <div class="sl-traffic-grid">
+          <section class="sl-traffic-card" aria-live="polite">
+            <p class="sl-traffic-title">SL • Nästa tåg som anländer till Kista (mot Kungsträdgården/T-Centralen)</p>
+            <p id="sl-traffic-status" class="sl-traffic-status">Loading SL train arrivals...</p>
+            <ul id="sl-traffic-list" class="sl-traffic-list"></ul>
+          </section>
+          <section class="sl-traffic-card" aria-live="polite">
+            <p class="sl-traffic-title">SL • Buss till Kista centrum från Norgegatan (179 / 685 / 687)</p>
+            <p id="sl-bus-status" class="sl-traffic-status">Loading bus arrivals at Norgegatan...</p>
+            <ul id="sl-bus-list" class="sl-traffic-list"></ul>
+          </section>
+        </div>
       </section>
     </div>
 
@@ -57,6 +69,6 @@
   <button id="mute-btn" class="mute-btn" type="button" title="Toggle Adhan sound">🔊</button>
   <button id="test-adhan-btn" class="test-btn" type="button" title="Test Adhan sound">🔈 Test</button>
 
-  <script src="./app.js"></script>
+  <script src="./app.js?v=20260706-2"></script>
 </body>
 </html>
