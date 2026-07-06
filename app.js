@@ -40,6 +40,7 @@ const liveClockEl = document.getElementById("live-clock");
 const hijriEl = document.getElementById("hijri");
 const weatherCurrentEl = document.getElementById("weather-current");
 const weatherExtraEl = document.getElementById("weather-extra");
+const weatherHoursEl = document.getElementById("weather-hours");
 const slTrafficStatusEl = document.getElementById("sl-traffic-status");
 const slTrafficListEl = document.getElementById("sl-traffic-list");
 const slBusStatusEl = document.getElementById("sl-bus-status");
@@ -400,16 +401,113 @@ function setStatus(message, isError = false) {
   statusEl.style.color = isError ? "#b91c1c" : "#374151";
 }
 
+function getWeatherEmoji(code) {
+  if (code === 0) return "☀️";
+  if (code >= 1 && code <= 3) return "☁️";
+  if (code >= 45 && code <= 48) return "🌫️";
+  if ((code >= 51 && code <= 57) || (code >= 61 && code <= 67)) return "🌧️";
+  if (code >= 71 && code <= 77) return "❄️";
+  if (code >= 80 && code <= 82) return "🌦️";
+  if (code >= 85 && code <= 86) return "🌨️";
+  if (code >= 95) return "⛈️";
+  return "🌡️";
+}
+
 function getWeatherLabel(code) {
-  if (code === 0) return "Clear";
-  if (code >= 1 && code <= 3) return "Partly cloudy";
-  if (code >= 45 && code <= 48) return "Fog";
-  if ((code >= 51 && code <= 57) || (code >= 61 && code <= 67)) return "Rain";
-  if (code >= 71 && code <= 77) return "Snow";
-  if (code >= 80 && code <= 82) return "Rain showers";
-  if (code >= 85 && code <= 86) return "Snow showers";
-  if (code >= 95) return "Thunderstorm";
-  return "Unknown";
+  const emoji = getWeatherEmoji(code);
+  if (code === 0) return `${emoji} صافي`;
+  if (code >= 1 && code <= 3) return `${emoji} الجو مغيم سنة`;
+  if (code >= 45 && code <= 48) return `${emoji} شبورة`;
+  if ((code >= 51 && code <= 57) || (code >= 61 && code <= 67)) return `${emoji} مطر`;
+  if (code >= 71 && code <= 77) return `${emoji} تلج`;
+  if (code >= 80 && code <= 82) return `${emoji} شوية مطر`;
+  if (code >= 85 && code <= 86) return `${emoji} شوية تلج`;
+  if (code >= 95) return `${emoji} عاصفة ورعد`;
+  return `${emoji} مش واضح`;
+}
+
+function getWeatherCompactLabel(code) {
+  const emoji = getWeatherEmoji(code);
+  if (code === 0) return `${emoji} صافي`;
+  if (code >= 1 && code <= 3) return `${emoji} مغيم`;
+  if (code >= 45 && code <= 48) return `${emoji} شبورة`;
+  if ((code >= 51 && code <= 57) || (code >= 61 && code <= 67)) return `${emoji} مطر`;
+  if (code >= 71 && code <= 77) return `${emoji} تلج`;
+  if (code >= 80 && code <= 82) return `${emoji} شوية مطر`;
+  if (code >= 85 && code <= 86) return `${emoji} شوية تلج`;
+  if (code >= 95) return `${emoji} عاصفة`;
+  return `${emoji} مش واضح`;
+}
+
+function getStockholmIsoDate(date = new Date()) {
+  const { year, month, day } = getStockholmParts(date);
+  return `${year}-${month}-${day}`;
+}
+
+function renderUpcomingHourlyWeather(hourly) {
+  if (!weatherHoursEl) return;
+  weatherHoursEl.className = "weather-hours";
+  if (!Array.isArray(hourly?.time) || !Array.isArray(hourly?.temperature_2m)) {
+    weatherHoursEl.textContent = "توقعات الساعات مش متاحة.";
+    return;
+  }
+
+  const todayIsoDate = getStockholmIsoDate();
+  const nowHour = Number(getStockholmParts().hour);
+  const startHour = Math.max(8, nowHour);
+
+  if (startHour > 18) {
+    weatherHoursEl.textContent = "مفيش توقعات جاية النهارده بين 08:00 و 18:00.";
+    return;
+  }
+
+  const entries = [];
+  for (let index = 0; index < hourly.time.length; index += 1) {
+    const isoTime = String(hourly.time[index] || "");
+    if (isoTime.length < 13) continue;
+    const hour = Number(isoTime.slice(11, 13));
+    if (isoTime.slice(0, 10) !== todayIsoDate || Number.isNaN(hour) || hour < startHour || hour > 18) {
+      continue;
+    }
+
+    const temperature = hourly.temperature_2m[index];
+    if (typeof temperature !== "number") continue;
+    const weatherCode = Number(hourly.weather_code?.[index]);
+    const weatherLabel = Number.isNaN(weatherCode) ? "مش واضح" : getWeatherCompactLabel(weatherCode);
+    entries.push({
+      time: `${String(hour).padStart(2, "0")}:00`,
+      data: `${Math.round(temperature)}° ${weatherLabel}`
+    });
+  }
+
+  if (entries.length === 0) {
+    weatherHoursEl.textContent = "مفيش بيانات بالساعات بين 08:00 و 18:00 النهارده.";
+    return;
+  }
+
+  weatherHoursEl.textContent = "";
+  weatherHoursEl.classList.add("weather-hours-grid");
+  weatherHoursEl.style.setProperty("--weather-cols", String(entries.length));
+
+  const timeRow = document.createElement("div");
+  timeRow.className = "weather-hours-row weather-hours-row-time";
+  const dataRow = document.createElement("div");
+  dataRow.className = "weather-hours-row weather-hours-row-data";
+
+  for (const entry of entries) {
+    const timeCell = document.createElement("span");
+    timeCell.className = "weather-hours-cell";
+    timeCell.textContent = entry.time;
+    timeRow.appendChild(timeCell);
+
+    const dataCell = document.createElement("span");
+    dataCell.className = "weather-hours-cell";
+    dataCell.textContent = entry.data;
+    dataRow.appendChild(dataCell);
+  }
+
+  weatherHoursEl.appendChild(timeRow);
+  weatherHoursEl.appendChild(dataRow);
 }
 
 function parseDisplayMinutes(displayValue) {
@@ -578,6 +676,7 @@ async function fetchCurrentWeather() {
     `?latitude=${encodeURIComponent(KISTA_PROFILE.latitude)}` +
     `&longitude=${encodeURIComponent(KISTA_PROFILE.longitude)}` +
     `&current=temperature_2m,apparent_temperature,weather_code,wind_speed_10m` +
+    `&hourly=temperature_2m,weather_code` +
     `&timezone=Europe%2FStockholm`;
 
   try {
@@ -585,7 +684,7 @@ async function fetchCurrentWeather() {
     const payload = await response.json();
     const current = payload?.current;
     if (!response.ok || !current) {
-      throw new Error("Could not load Kista weather.");
+      throw new Error("معرفتش أحمّل طقس كيستا.");
     }
 
     const roundedTemp = Math.round(current.temperature_2m);
@@ -594,11 +693,15 @@ async function fetchCurrentWeather() {
     const weatherLabel = getWeatherLabel(Number(current.weather_code));
 
     weatherCurrentEl.textContent = `${roundedTemp}°C • ${weatherLabel}`;
-    weatherExtraEl.textContent = `Feels like ${roundedFeelsLike}°C • Wind ${roundedWind} km/h`;
+    weatherExtraEl.textContent = `المحسوس ${roundedFeelsLike}°C • الهوا ${roundedWind} كم/س`;
+    renderUpcomingHourlyWeather(payload?.hourly);
     lastWeatherFetchAt = Date.now();
   } catch (error) {
-    weatherCurrentEl.textContent = "Weather unavailable";
-    weatherExtraEl.textContent = error instanceof Error ? error.message : "Failed to fetch weather.";
+    weatherCurrentEl.textContent = "الطقس مش متاح";
+    weatherExtraEl.textContent = error instanceof Error ? error.message : "حصلت مشكلة في تحميل بيانات الطقس.";
+    if (weatherHoursEl) {
+      weatherHoursEl.textContent = "";
+    }
   } finally {
     weatherFetchInFlight = false;
   }

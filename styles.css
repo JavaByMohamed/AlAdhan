@@ -347,6 +347,42 @@ tbody td.is-next-prayer::after {
   font-size: 0.95rem;
 }
 
+.weather-hours {
+  margin: 0.35rem 0 0;
+  font-size: 0.8rem;
+  line-height: 1.25;
+}
+
+.weather-hours-grid {
+  display: grid;
+  grid-template-rows: auto auto;
+  gap: 0.28rem;
+}
+
+.weather-hours-row {
+  display: grid;
+  grid-template-columns: repeat(var(--weather-cols, 1), minmax(0, 1fr));
+  gap: 0.3rem;
+}
+
+.weather-hours-cell {
+  padding: 0.15rem 0.2rem;
+  border-radius: 6px;
+  text-align: center;
+  background: rgb(0 0 0 / 0.2);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.weather-hours-row-time .weather-hours-cell {
+  font-weight: 700;
+}
+
+.weather-hours-row-data .weather-hours-cell {
+  font-size: 0.74rem;
+}
+
 .sl-traffic-card {
   margin: 0;
   padding: 0.75rem;
