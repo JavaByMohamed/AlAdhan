@@ -208,6 +208,24 @@ h1 {
   border: 1px solid #d1d5db;
 }
 
+.manual-time-controls {
+  display: none;
+  grid-template-columns: minmax(130px, 1fr) minmax(120px, 1fr) auto auto;
+  gap: 0.5rem;
+  margin-bottom: 0.75rem;
+  align-items: center;
+}
+
+.manual-time-controls button {
+  white-space: nowrap;
+}
+
+.manual-override-note {
+  margin: 0 0 0.75rem;
+  min-height: 1.2rem;
+  color: #d1fae5;
+}
+
 .table-wrap {
   width: 100%;
   overflow-x: auto;
@@ -260,6 +278,7 @@ button:hover {
 }
 
 .test-btn {
+  display: none;
   position: fixed;
   top: 1rem;
   right: 60px;
@@ -282,6 +301,7 @@ table {
   width: 100%;
   min-width: 320px;
   border-collapse: collapse;
+  direction: rtl;
 }
 
 th,
@@ -296,11 +316,11 @@ td[dir="rtl"] {
   text-align: center;
 }
 
-tbody tr.is-next-prayer {
+tbody td.is-next-prayer {
   background: #176c34;
 }
 
-tbody tr.is-next-prayer td:first-child::after {
+tbody td.is-next-prayer::after {
   content: " • next";
   color: #0aff67;
   font-weight: 900;
@@ -356,6 +376,10 @@ tbody tr.is-next-prayer td:first-child::after {
   .date-nav input[type="date"],
   #load-btn {
     width: 100%;
+  }
+
+  .manual-time-controls {
+    grid-template-columns: 1fr;
   }
 
   .mute-btn {

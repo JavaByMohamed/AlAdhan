@@ -6,6 +6,15 @@ const PRAYER_KEYS = [
   { label: "Maghrib", ar: "المغرب", key: "Maghrib" },
   { label: "Isha", ar: "العشاء", key: "Isha" }
 ];
+const PRAYER_TABLE_COLUMNS = [
+  { label: "الفجر", key: "Fajr" },
+  { label: "الشروق", key: "Sunrise" },
+  { label: "الظهر", key: "Dhuhr" },
+  { label: "العصر", key: "Asr" },
+  { label: "العصر", key: "Asr" },
+  { label: "المغرب", key: "Maghrib" },
+  { label: "العشاء", key: "Isha" }
+];
 
 const STOCKHOLM_PROFILE = {
   latitude: 59.3293,
@@ -33,6 +42,7 @@ const clockMinuteEl = document.getElementById("clock-minute");
 const clockSecondEl = document.getElementById("clock-second");
 const resultEl = document.getElementById("result");
 const timingsBodyEl = document.getElementById("timings-body");
+const timingsHeadRowEl = document.getElementById("timings-head-row");
 const loadBtn = document.getElementById("load-btn");
 const prevDayBtn = document.getElementById("prev-day-btn");
 const nextDayBtn = document.getElementById("next-day-btn");
@@ -40,10 +50,15 @@ const datePickerEl = document.getElementById("date-picker");
 const adhanAudioEl = document.getElementById("adhan-audio");
 const muteBtn = document.getElementById("mute-btn");
 const testAdhanBtn = document.getElementById("test-adhan-btn");
+const manualPrayerSelectEl = document.getElementById("manual-prayer-select");
+const manualTimeInputEl = document.getElementById("manual-time-input");
+const setManualTimeBtn = document.getElementById("set-manual-time-btn");
+const clearManualTimesBtn = document.getElementById("clear-manual-times-btn");
+const manualOverrideNoteEl = document.getElementById("manual-override-note");
 
 let currentTimings = null;
 let renderedForDate = null;
-let activePrayerRow = null;
+let activePrayerCell = null;
 let fetchInFlight = false;
 let selectedDate = new Date();
 let isMuted = localStorage.getItem("adhanMuted") === "true";
@@ -53,6 +68,8 @@ let lastWeatherFetchAt = 0;
 
 const WEATHER_REFRESH_MS = 10 * 60 * 1000;
 const PAGE_AUTO_REFRESH_MS = 60 * 1000;
+const CUSTOM_TIMINGS_STORAGE_KEY = "customPrayerTimingsByDate";
+let customTimingsByDate = loadCustomTimingsByDate();
 
 const stockholmTimeFormatter = new Intl.DateTimeFormat("sv-SE", {
   timeZone: "Europe/Stockholm",
@@ -117,6 +134,108 @@ function formatPrayerTime(value) {
   return value.split(" ")[0];
 }
 
+function isValidTimeValue(value) {
+  return /^([01]\d|2[0-3]):([0-5]\d)$/.test(value);
+}
+
+function normalizePrayerTime(value) {
+  const normalized = String(value || "").trim().split(" ")[0];
+  return isValidTimeValue(normalized) ? normalized : null;
+}
+
+function loadCustomTimingsByDate() {
+  try {
+    const parsed = JSON.parse(localStorage.getItem(CUSTOM_TIMINGS_STORAGE_KEY) || "{}");
+    if (!parsed || typeof parsed !== "object") return {};
+    return parsed;
+  } catch {
+    return {};
+  }
+}
+
+function saveCustomTimingsByDate() {
+  localStorage.setItem(CUSTOM_TIMINGS_STORAGE_KEY, JSON.stringify(customTimingsByDate));
+}
+
+function applyCustomTimings(timings, dateKey) {
+  const dateOverrides = customTimingsByDate[dateKey];
+  if (!dateOverrides) return timings;
+
+  const mergedTimings = { ...timings };
+  for (const prayer of PRAYER_KEYS) {
+    const override = normalizePrayerTime(dateOverrides[prayer.key]);
+    if (override) {
+      mergedTimings[prayer.key] = override;
+    }
+  }
+  return mergedTimings;
+}
+
+function updateManualOverrideNote() {
+  const dateKey = getSelectedDateFormatted();
+  const dateOverrides = customTimingsByDate[dateKey];
+  const overrideCount = PRAYER_KEYS.filter(
+    (prayer) => normalizePrayerTime(dateOverrides?.[prayer.key]) !== null
+  ).length;
+
+  if (overrideCount === 0) {
+    manualOverrideNoteEl.textContent = "";
+    return;
+  }
+
+  manualOverrideNoteEl.textContent = `Manual times active for ${overrideCount} prayer(s) on ${datePickerEl.value}.`;
+}
+
+function syncManualTimeInputFromSelection() {
+  if (!currentTimings) return;
+  const selectedPrayer = manualPrayerSelectEl.value;
+  const value = normalizePrayerTime(currentTimings[selectedPrayer]);
+  manualTimeInputEl.value = value || "";
+}
+
+function handleSetManualPrayerTime() {
+  if (!currentTimings) {
+    setStatus("Load prayer times first.", true);
+    return;
+  }
+
+  const prayerKey = manualPrayerSelectEl.value;
+  const timeValue = normalizePrayerTime(manualTimeInputEl.value);
+  if (!timeValue) {
+    setStatus("Enter a valid time in HH:MM format.", true);
+    return;
+  }
+
+  const dateKey = getSelectedDateFormatted();
+  if (!customTimingsByDate[dateKey]) {
+    customTimingsByDate[dateKey] = {};
+  }
+  customTimingsByDate[dateKey][prayerKey] = timeValue;
+  saveCustomTimingsByDate();
+
+  const updatedTimings = { ...currentTimings, [prayerKey]: timeValue };
+  renderTimings(updatedTimings);
+  renderedForDate = dateKey;
+  updateManualOverrideNote();
+
+  const prayerLabel = PRAYER_KEYS.find((prayer) => prayer.key === prayerKey)?.label || prayerKey;
+  setStatus(`${prayerLabel} set to ${timeValue} for ${datePickerEl.value}.`);
+}
+
+function handleClearManualPrayerTimes() {
+  const dateKey = getSelectedDateFormatted();
+  if (!customTimingsByDate[dateKey]) {
+    setStatus(`No manual times found for ${datePickerEl.value}.`);
+    return;
+  }
+
+  delete customTimingsByDate[dateKey];
+  saveCustomTimingsByDate();
+  updateManualOverrideNote();
+  setStatus(`Manual times cleared for ${datePickerEl.value}.`);
+  fetchPrayerTimes();
+}
+
 function parsePrayerMinutes(value) {
   if (!value) return null;
   const [hours, minutes] = value.split(" ")[0].split(":").map(Number);
@@ -129,6 +248,10 @@ function getStockholmMinutes(date = new Date()) {
 }
 
 function updateClock() {
+  if (!clockHourEl || !clockMinuteEl || !clockSecondEl) {
+    return;
+  }
+
   const now = new Date();
   const stockholmParts = getStockholmParts(now);
   const hours = Number(stockholmParts.hour);
@@ -150,31 +273,27 @@ function updateClock() {
 
 function clock() {
   const now = new Date();
-  const stockholmParts = getStockholmParts(now);
-
-  setTimeout(clock, 1000);
   liveClockEl.textContent = stockholmTimeFormatter.format(now);
   hijriEl.textContent = `${stockholmHijriFormatter.format(now)}`;
 }
 
-function setActivePrayerRow(row) {
-  if (activePrayerRow) {
-    activePrayerRow.classList.remove("is-next-prayer");
+function setActivePrayerCell(cell) {
+  if (activePrayerCell) {
+    activePrayerCell.classList.remove("is-next-prayer");
   }
-  activePrayerRow = row;
-  if (activePrayerRow) {
-    activePrayerRow.classList.add("is-next-prayer");
+  activePrayerCell = cell;
+  if (activePrayerCell) {
+    activePrayerCell.classList.add("is-next-prayer");
   }
 }
 
 function updateNextPrayerHighlight() {
   if (!currentTimings) {
-    setActivePrayerRow(null);
+    setActivePrayerCell(null);
     return;
   }
 
   const nowMinutes = getStockholmMinutes();
-  const rows = Array.from(timingsBodyEl.querySelectorAll("tr"));
   const prayerTimes = PRAYER_KEYS.map((prayer) => ({
     key: prayer.key,
     minutes: parsePrayerMinutes(currentTimings[prayer.key])
@@ -183,27 +302,38 @@ function updateNextPrayerHighlight() {
   let nextIndex = prayerTimes.findIndex((prayer) => prayer.minutes !== null && prayer.minutes >= nowMinutes);
   if (nextIndex === -1) nextIndex = 0;
 
-  setActivePrayerRow(rows[nextIndex] ?? null);
+  const nextPrayerKey = prayerTimes[nextIndex]?.key;
+  const cells = Array.from(timingsBodyEl.querySelectorAll("td[data-prayer-key]"));
+  const nextPrayerCell = cells.find((cell) => cell.dataset.prayerKey === nextPrayerKey) || null;
+  setActivePrayerCell(nextPrayerCell);
   
   // Check if it's time to play Adhan
-  checkAndPlayAdhan(prayerTimes, nowMinutes);
+  checkAndPlayAdhan();
 }
 
-function checkAndPlayAdhan(prayerTimes, nowMinutes) {
-  if (isMuted || !currentTimings) return;
+function getLiveClockTimeKey() {
+  const displayedClockValue = String(liveClockEl.textContent || "").trim();
+  const match = displayedClockValue.match(/^(\d{2}):(\d{2})/);
+  if (!match) return null;
+  return `${match[1]}:${match[2]}`;
+}
 
-  // Check if current time matches any prayer time (within 1 minute window)
-  for (const prayer of prayerTimes) {
-    if (prayer.minutes !== null) {
-      const timeDiff = Math.abs(nowMinutes - prayer.minutes);
-      if (timeDiff < 1) {
-        // Only play once per prayer
-        if (lastPlayedPrayer !== prayer.key) {
-          playAdhan();
-          lastPlayedPrayer = prayer.key;
-        }
-        return;
+function checkAndPlayAdhan() {
+  if (isMuted || !currentTimings) return;
+  const nowTimeKey = getLiveClockTimeKey();
+  if (!nowTimeKey) return;
+
+  for (let index = 0; index < PRAYER_KEYS.length; index += 1) {
+    const prayer = PRAYER_KEYS[index];
+    const prayerTimeKey = normalizePrayerTime(currentTimings[prayer.key]);
+    if (!prayerTimeKey) continue;
+    if (prayerTimeKey === nowTimeKey) {
+      // Only play once per prayer
+      if (lastPlayedPrayer !== prayer.key) {
+        playAdhan();
+        lastPlayedPrayer = prayer.key;
       }
+      return;
     }
   }
 }
@@ -309,20 +439,28 @@ function renderTimings(timings) {
   currentTimings = timings;
   lastPlayedPrayer = null; // Reset for new date
   timingsBodyEl.innerHTML = "";
-  for (const prayer of PRAYER_KEYS) {
-    const row = document.createElement("tr");
-    const arabicCell = document.createElement("td");
+  const row = document.createElement("tr");
+  for (const column of PRAYER_TABLE_COLUMNS) {
     const timeCell = document.createElement("td");
-    const prayerCell = document.createElement("td");
-    arabicCell.textContent = prayer.ar;
-    arabicCell.dir = "rtl";
-    prayerCell.textContent = prayer.label;
-    timeCell.textContent = formatPrayerTime(timings[prayer.key]);
-    row.append(prayerCell, timeCell, arabicCell);
-    timingsBodyEl.appendChild(row);
+    timeCell.dataset.prayerKey = column.key;
+    timeCell.textContent = formatPrayerTime(timings[column.key]);
+    row.appendChild(timeCell);
   }
+  timingsBodyEl.appendChild(row);
   resultEl.classList.remove("hidden");
+  syncManualTimeInputFromSelection();
+  updateManualOverrideNote();
   updateNextPrayerHighlight();
+}
+
+function initializeTimingsHeader() {
+  if (!timingsHeadRowEl) return;
+  timingsHeadRowEl.innerHTML = "";
+  for (const column of PRAYER_TABLE_COLUMNS) {
+    const headerCell = document.createElement("th");
+    headerCell.textContent = column.label;
+    timingsHeadRowEl.appendChild(headerCell);
+  }
 }
 
 function getTodayDate() {
@@ -385,7 +523,8 @@ async function fetchPrayerTimes() {
       throw new Error(payload?.data || "Could not load prayer times.");
     }
 
-    renderTimings(payload.data.timings, "");
+    const effectiveTimings = applyCustomTimings(payload.data.timings, date);
+    renderTimings(effectiveTimings, "");
     renderedForDate = date;
   } catch (error) {
     resultEl.classList.add("hidden");
@@ -400,10 +539,25 @@ async function fetchPrayerTimes() {
   }
 }
 
+function initializeManualPrayerControls() {
+  manualPrayerSelectEl.innerHTML = "";
+  for (const prayer of PRAYER_KEYS) {
+    const option = document.createElement("option");
+    option.value = prayer.key;
+    option.textContent = `${prayer.label} (${prayer.ar})`;
+    manualPrayerSelectEl.appendChild(option);
+  }
+  manualPrayerSelectEl.value = PRAYER_KEYS[0].key;
+  updateManualOverrideNote();
+}
+
 loadBtn.addEventListener("click", fetchPrayerTimes);
 prevDayBtn.addEventListener("click", setPreviousDay);
 nextDayBtn.addEventListener("click", setNextDay);
 datePickerEl.addEventListener("change", handleDatePickerChange);
+manualPrayerSelectEl.addEventListener("change", syncManualTimeInputFromSelection);
+setManualTimeBtn.addEventListener("click", handleSetManualPrayerTime);
+clearManualTimesBtn.addEventListener("click", handleClearManualPrayerTimes);
 muteBtn.addEventListener("click", toggleMute);
 testAdhanBtn.addEventListener("click", () => {
   if (isMuted) {
@@ -417,6 +571,8 @@ adhanAudioEl.addEventListener("ended", () => {
   setStatus("");
 });
 updateDatePicker();
+initializeTimingsHeader();
+initializeManualPrayerControls();
 updateMuteButton();
 fetchPrayerTimes();
 fetchCurrentWeather();
@@ -440,7 +596,7 @@ setInterval(() => {
 
 setInterval(() => {
   const viewingToday = getSelectedDateFormatted() === getTodayDate();
-  if (!viewingToday || !adhanAudioEl.paused || fetchInFlight || document.visibilityState !== "visible") {
+  if (!viewingToday || fetchInFlight || !adhanAudioEl.paused || document.visibilityState !== "visible") {
     return;
   }
 

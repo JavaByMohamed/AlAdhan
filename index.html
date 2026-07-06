@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="en">
+<html lang="en" xmlns:display="http://www.w3.org/1999/xhtml">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -28,14 +28,17 @@
           </div>
           <button id="load-btn" type="button">Refresh</button>
         </div>
+        <div class="manual-time-controls" display: none; >
+          <select id="manual-prayer-select" aria-label="Prayer name"></select>
+          <input id="manual-time-input" type="time" aria-label="Prayer time" />
+          <button id="set-manual-time-btn" type="button">Set prayer time</button>
+          <button id="clear-manual-times-btn" type="button">Clear manual times</button>
+        </div>
+        <p id="manual-override-note" class="manual-override-note"></p>
         <div class="table-wrap">
           <table>
             <thead>
-              <tr>
-                <th>Prayer</th>
-                <th>Time</th>
-                <th>أذان</th>
-              </tr>
+              <tr id="timings-head-row"></tr>
             </thead>
             <tbody id="timings-body"></tbody>
           </table>
