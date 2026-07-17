@@ -338,6 +338,7 @@ function checkAndPlayAdhan() {
 
   for (let index = 0; index < PRAYER_KEYS.length; index += 1) {
     const prayer = PRAYER_KEYS[index];
+    if (prayer.key === "Sunrise") continue;
     const prayerTimeKey = normalizePrayerTime(currentTimings[prayer.key]);
     if (!prayerTimeKey) continue;
     if (prayerTimeKey === nowTimeKey) {
