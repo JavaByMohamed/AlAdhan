@@ -11,7 +11,6 @@ const PRAYER_TABLE_COLUMNS = [
   { label: "الشروق", key: "Sunrise" },
   { label: "الظهر", key: "Dhuhr" },
   { label: "العصر", key: "Asr" },
-  { label: "العصر", key: "Asr" },
   { label: "المغرب", key: "Maghrib" },
   { label: "العشاء", key: "Isha" }
 ];
