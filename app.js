@@ -40,6 +40,7 @@ const hijriEl = document.getElementById("hijri");
 const weatherCurrentEl = document.getElementById("weather-current");
 const weatherExtraEl = document.getElementById("weather-extra");
 const weatherHoursEl = document.getElementById("weather-hours");
+const weatherDailyEl = document.getElementById("weather-daily");
 const slTrafficStatusEl = document.getElementById("sl-traffic-status");
 const slTrafficListEl = document.getElementById("sl-traffic-list");
 const slBusStatusEl = document.getElementById("sl-bus-status");
@@ -99,6 +100,10 @@ const stockholmDateFormatter = new Intl.DateTimeFormat("sv-SE", {
 });
 
 const stockholmWeekDayFormatter = new Intl.DateTimeFormat("sv-SE", {
+  timeZone: "Europe/Stockholm",
+  weekday: "long"
+});
+const arabicWeekDayFormatter = new Intl.DateTimeFormat("ar-EG", {
   timeZone: "Europe/Stockholm",
   weekday: "long"
 });
@@ -401,9 +406,9 @@ function setStatus(message, isError = false) {
   statusEl.style.color = isError ? "#b91c1c" : "#374151";
 }
 
-function getWeatherEmoji(code) {
+function getWeatherSymbol(code) {
   if (code === 0) return "☀️";
-  if (code >= 1 && code <= 3) return "☁️";
+  if (code >= 1 && code <= 3) return "⛅";
   if (code >= 45 && code <= 48) return "🌫️";
   if ((code >= 51 && code <= 57) || (code >= 61 && code <= 67)) return "🌧️";
   if (code >= 71 && code <= 77) return "❄️";
@@ -414,29 +419,15 @@ function getWeatherEmoji(code) {
 }
 
 function getWeatherLabel(code) {
-  const emoji = getWeatherEmoji(code);
-  if (code === 0) return `${emoji} صافي`;
-  if (code >= 1 && code <= 3) return `${emoji} الجو مغيم سنة`;
-  if (code >= 45 && code <= 48) return `${emoji} شبورة`;
-  if ((code >= 51 && code <= 57) || (code >= 61 && code <= 67)) return `${emoji} مطر`;
-  if (code >= 71 && code <= 77) return `${emoji} تلج`;
-  if (code >= 80 && code <= 82) return `${emoji} شوية مطر`;
-  if (code >= 85 && code <= 86) return `${emoji} شوية تلج`;
-  if (code >= 95) return `${emoji} عاصفة ورعد`;
-  return `${emoji} مش واضح`;
-}
-
-function getWeatherCompactLabel(code) {
-  const emoji = getWeatherEmoji(code);
-  if (code === 0) return `${emoji} صافي`;
-  if (code >= 1 && code <= 3) return `${emoji} مغيم`;
-  if (code >= 45 && code <= 48) return `${emoji} شبورة`;
-  if ((code >= 51 && code <= 57) || (code >= 61 && code <= 67)) return `${emoji} مطر`;
-  if (code >= 71 && code <= 77) return `${emoji} تلج`;
-  if (code >= 80 && code <= 82) return `${emoji} شوية مطر`;
-  if (code >= 85 && code <= 86) return `${emoji} شوية تلج`;
-  if (code >= 95) return `${emoji} عاصفة`;
-  return `${emoji} مش واضح`;
+  if (code === 0) return "صافي";
+  if (code >= 1 && code <= 3) return "غائم";
+  if (code >= 45 && code <= 48) return "شبورة";
+  if ((code >= 51 && code <= 57) || (code >= 61 && code <= 67)) return "ممطر";
+  if (code >= 71 && code <= 77) return "ثلوج";
+  if (code >= 80 && code <= 82) return "زخات مطر";
+  if (code >= 85 && code <= 86) return "زخات ثلج";
+  if (code >= 95) return "عاصفة رعدية";
+  return "غير واضح";
 }
 
 function getStockholmIsoDate(date = new Date()) {
@@ -448,66 +439,115 @@ function renderUpcomingHourlyWeather(hourly) {
   if (!weatherHoursEl) return;
   weatherHoursEl.className = "weather-hours";
   if (!Array.isArray(hourly?.time) || !Array.isArray(hourly?.temperature_2m)) {
-    weatherHoursEl.textContent = "توقعات الساعات مش متاحة.";
+    weatherHoursEl.textContent = "توقعات الساعات غير متاحة.";
     return;
   }
 
   const todayIsoDate = getStockholmIsoDate();
   const nowHour = Number(getStockholmParts().hour);
-  const startHour = Math.max(8, nowHour);
-
-  if (startHour > 18) {
-    weatherHoursEl.textContent = "مفيش توقعات جاية النهارده بين 08:00 و 18:00.";
-    return;
-  }
+  const startHour = Math.max(nowHour, 8);
 
   const entries = [];
   for (let index = 0; index < hourly.time.length; index += 1) {
     const isoTime = String(hourly.time[index] || "");
     if (isoTime.length < 13) continue;
     const hour = Number(isoTime.slice(11, 13));
-    if (isoTime.slice(0, 10) !== todayIsoDate || Number.isNaN(hour) || hour < startHour || hour > 18) {
+    if (isoTime.slice(0, 10) !== todayIsoDate || Number.isNaN(hour) || hour < startHour) {
       continue;
     }
 
     const temperature = hourly.temperature_2m[index];
     if (typeof temperature !== "number") continue;
-    const weatherCode = Number(hourly.weather_code?.[index]);
-    const weatherLabel = Number.isNaN(weatherCode) ? "مش واضح" : getWeatherCompactLabel(weatherCode);
+    const weatherCode = Number(hourly.weather_code?.[index] ?? NaN);
     entries.push({
-      time: `${String(hour).padStart(2, "0")}:00`,
-      data: `${Math.round(temperature)}° ${weatherLabel}`
+      hourLabel: `${hour % 12 === 0 ? 12 : hour % 12}${hour < 12 ? "ص" : "م"}`,
+      symbol: Number.isNaN(weatherCode) ? "🌡️" : getWeatherSymbol(weatherCode),
+      temp: `${Math.round(temperature)}°`
     });
+    if (entries.length >= 6) break;
   }
 
   if (entries.length === 0) {
-    weatherHoursEl.textContent = "مفيش بيانات بالساعات بين 08:00 و 18:00 النهارده.";
+    weatherHoursEl.textContent = "لا توجد توقعات بالساعات القادمة.";
     return;
   }
 
   weatherHoursEl.textContent = "";
-  weatherHoursEl.classList.add("weather-hours-grid");
-  weatherHoursEl.style.setProperty("--weather-cols", String(entries.length));
+  weatherHoursEl.classList.add("weather-hours-board");
 
-  const timeRow = document.createElement("div");
-  timeRow.className = "weather-hours-row weather-hours-row-time";
-  const dataRow = document.createElement("div");
-  dataRow.className = "weather-hours-row weather-hours-row-data";
+  const sectionTitle = document.createElement("p");
+  sectionTitle.className = "weather-section-title";
+  sectionTitle.textContent = "كل ساعة";
+  weatherHoursEl.appendChild(sectionTitle);
+
+  const row = document.createElement("div");
+  row.className = "weather-hours-row";
+  row.style.setProperty("--weather-cols", String(entries.length));
 
   for (const entry of entries) {
-    const timeCell = document.createElement("span");
-    timeCell.className = "weather-hours-cell";
-    timeCell.textContent = entry.time;
-    timeRow.appendChild(timeCell);
-
-    const dataCell = document.createElement("span");
-    dataCell.className = "weather-hours-cell";
-    dataCell.textContent = entry.data;
-    dataRow.appendChild(dataCell);
+    const cell = document.createElement("article");
+    cell.className = "weather-hour-cell";
+    const time = document.createElement("span");
+    time.className = "weather-hour-time";
+    time.textContent = entry.hourLabel;
+    const icon = document.createElement("span");
+    icon.className = "weather-hour-icon";
+    icon.textContent = entry.symbol;
+    const temp = document.createElement("span");
+    temp.className = "weather-hour-temp";
+    temp.textContent = entry.temp;
+    cell.append(time, icon, temp);
+    row.appendChild(cell);
   }
 
-  weatherHoursEl.appendChild(timeRow);
-  weatherHoursEl.appendChild(dataRow);
+  weatherHoursEl.appendChild(row);
+}
+
+function renderDailyWeather(daily) {
+  if (!weatherDailyEl) return;
+  weatherDailyEl.className = "weather-daily";
+  weatherDailyEl.innerHTML = "";
+
+  if (
+    !Array.isArray(daily?.time) ||
+    !Array.isArray(daily?.weather_code) ||
+    !Array.isArray(daily?.temperature_2m_max)
+  ) {
+    weatherDailyEl.textContent = "توقعات الأيام غير متاحة.";
+    return;
+  }
+
+  const sectionTitle = document.createElement("p");
+  sectionTitle.className = "weather-section-title";
+  sectionTitle.textContent = "يومي";
+  weatherDailyEl.appendChild(sectionTitle);
+
+  const list = document.createElement("div");
+  list.className = "weather-daily-list";
+
+  const maxItems = Math.min(4, daily.time.length);
+  for (let index = 0; index < maxItems; index += 1) {
+    const row = document.createElement("div");
+    row.className = "weather-daily-row";
+
+    const day = document.createElement("span");
+    day.className = "weather-daily-day";
+    const dateValue = new Date(`${daily.time[index]}T12:00:00`);
+    day.textContent = arabicWeekDayFormatter.format(dateValue);
+
+    const icon = document.createElement("span");
+    icon.className = "weather-daily-icon";
+    icon.textContent = getWeatherSymbol(Number(daily.weather_code[index]));
+
+    const temp = document.createElement("span");
+    temp.className = "weather-daily-temp";
+    temp.textContent = `${Math.round(daily.temperature_2m_max[index])}°`;
+
+    row.append(day, icon, temp);
+    list.appendChild(row);
+  }
+
+  weatherDailyEl.appendChild(list);
 }
 
 function parseDisplayMinutes(displayValue) {
@@ -543,23 +583,62 @@ function getDepartureTimestamp(departure) {
   return Number.isNaN(timestamp) ? null : timestamp;
 }
 
+function getMinutesUntilDeparture(departure) {
+  const minutesFromDisplay = getMinutesUntilDisplay(departure?.display);
+  if (minutesFromDisplay !== null) return minutesFromDisplay;
+
+  const departureTimestamp = getDepartureTimestamp(departure);
+  if (departureTimestamp === null) return 0;
+
+  const deltaMs = departureTimestamp - Date.now();
+  return Math.max(0, Math.round(deltaMs / 60000));
+}
+
+function createSlBoardListItem(departure, options) {
+  const listItem = document.createElement("li");
+  listItem.className = "sl-board-item";
+
+  const lineBadge = document.createElement("span");
+  lineBadge.className = "sl-line-badge";
+  lineBadge.textContent = String(departure?.line?.designation || options.fallbackLine || "SL");
+
+  const destinationLabel = document.createElement("span");
+  destinationLabel.className = "sl-destination";
+  destinationLabel.textContent = String(
+    options.getDestinationLabel(departure) || options.fallbackDestination || "Unknown destination"
+  ).trim();
+
+  const etaWrap = document.createElement("span");
+  etaWrap.className = "sl-eta";
+  const minutesUntil = getMinutesUntilDeparture(departure);
+  const etaValue = document.createElement("span");
+  etaValue.className = "sl-eta-value";
+  etaValue.textContent = String(minutesUntil);
+  const etaUnit = document.createElement("span");
+  etaUnit.className = "sl-eta-unit";
+  etaUnit.textContent = "min";
+  etaWrap.append(etaValue, etaUnit);
+
+  listItem.append(lineBadge, destinationLabel, etaWrap);
+  return listItem;
+}
+
 function renderSlTrafficList(arrivals) {
   if (!slTrafficStatusEl || !slTrafficListEl) return;
   slTrafficListEl.innerHTML = "";
 
   if (arrivals.length === 0) {
-    slTrafficStatusEl.textContent = "No upcoming train arrivals found right now.";
+    slTrafficStatusEl.textContent = "";
     return;
   }
 
-  slTrafficStatusEl.textContent = `Next ${arrivals.length} train arrival(s) to Kista platform toward city.`;
+  slTrafficStatusEl.textContent = "";
   for (const departure of arrivals) {
-    const listItem = document.createElement("li");
-    const lineDesignation = departure?.line?.designation ? `Line ${departure.line.designation}` : "Metro";
-    const directionLabel = departure?.direction || departure?.destination || "Kungsträdgården/T-Centralen";
-    const minutesUntil = getMinutesUntilDisplay(departure.display);
-    const etaLabel = minutesUntil === null ? "ETA unknown" : `${minutesUntil} min`;
-    listItem.textContent = `${departure.display} • ${etaLabel} • ${lineDesignation} • ${directionLabel}`;
+    const listItem = createSlBoardListItem(departure, {
+      fallbackLine: "METRO",
+      fallbackDestination: "Kungsträdgården/T-Centralen",
+      getDestinationLabel: (item) => item?.destination || item?.direction
+    });
     slTrafficListEl.appendChild(listItem);
   }
 }
@@ -613,18 +692,17 @@ function renderNorgegatanBusList(arrivals) {
   slBusListEl.innerHTML = "";
 
   if (arrivals.length === 0) {
-    slBusStatusEl.textContent = "No upcoming buses found for lines 179/685/687 toward Kista right now.";
+    slBusStatusEl.textContent = "";
     return;
   }
 
-  slBusStatusEl.textContent = `Found ${arrivals.length} upcoming bus arrival(s) at Norgegatan toward Kista.`;
+  slBusStatusEl.textContent = "";
   for (const departure of arrivals) {
-    const listItem = document.createElement("li");
-    const lineDesignation = departure?.line?.designation ? `Line ${departure.line.designation}` : "Bus";
-    const destinationLabel = departure?.destination || "Kista centrum";
-    const minutesUntil = getMinutesUntilDisplay(departure.display);
-    const etaLabel = minutesUntil === null ? "ETA unknown" : `${minutesUntil} min`;
-    listItem.textContent = `${departure.display} • ${etaLabel} • ${lineDesignation} • ${destinationLabel}`;
+    const listItem = createSlBoardListItem(departure, {
+      fallbackLine: "BUS",
+      fallbackDestination: "Kista centrum",
+      getDestinationLabel: (item) => item?.destination || item?.direction
+    });
     slBusListEl.appendChild(listItem);
   }
 }
@@ -632,7 +710,7 @@ function renderNorgegatanBusList(arrivals) {
 async function fetchNorgegatanBusArrivals() {
   if (!slBusStatusEl || !slBusListEl || slBusFetchInFlight) return;
   slBusFetchInFlight = true;
-  slBusStatusEl.textContent = "Loading bus arrivals at Norgegatan...";
+  slBusStatusEl.textContent = "";
 
   const url =
     `https://transport.integration.sl.se/v1/sites/${encodeURIComponent(NORGEGATAN_SL_SITE_ID)}/departures` +
@@ -677,6 +755,7 @@ async function fetchCurrentWeather() {
     `&longitude=${encodeURIComponent(KISTA_PROFILE.longitude)}` +
     `&current=temperature_2m,apparent_temperature,weather_code,wind_speed_10m` +
     `&hourly=temperature_2m,weather_code` +
+    `&daily=weather_code,temperature_2m_max` +
     `&timezone=Europe%2FStockholm`;
 
   try {
@@ -692,15 +771,19 @@ async function fetchCurrentWeather() {
     const roundedWind = Math.round(current.wind_speed_10m);
     const weatherLabel = getWeatherLabel(Number(current.weather_code));
 
-    weatherCurrentEl.textContent = `${roundedTemp}°C • ${weatherLabel}`;
-    weatherExtraEl.textContent = `المحسوس ${roundedFeelsLike}°C • الهوا ${roundedWind} كم/س`;
+    weatherCurrentEl.textContent = `${roundedTemp}°`;
+    weatherExtraEl.textContent = `${weatherLabel} • المحسوس ${roundedFeelsLike}° • الرياح ${roundedWind} كم/س`;
     renderUpcomingHourlyWeather(payload?.hourly);
+    renderDailyWeather(payload?.daily);
     lastWeatherFetchAt = Date.now();
   } catch (error) {
-    weatherCurrentEl.textContent = "الطقس مش متاح";
-    weatherExtraEl.textContent = error instanceof Error ? error.message : "حصلت مشكلة في تحميل بيانات الطقس.";
+    weatherCurrentEl.textContent = "--°";
+    weatherExtraEl.textContent = error instanceof Error ? error.message : "بيانات الطقس غير متاحة.";
     if (weatherHoursEl) {
       weatherHoursEl.textContent = "";
+    }
+    if (weatherDailyEl) {
+      weatherDailyEl.textContent = "";
     }
   } finally {
     weatherFetchInFlight = false;

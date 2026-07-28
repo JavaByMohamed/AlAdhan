@@ -4,62 +4,67 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>AlAdhan - Daily Prayer Times</title>
-  <link rel="stylesheet" href="./styles.css?v=20260706-3" />
+  <link rel="stylesheet" href="./styles.css?v=20260728-2" />
 </head>
 <body>
-  <main class="container">
-    <h1></h1>
-    <p class="subtitle"></p>
-
-    <div class="preview-grid">
-      <section class="result" id="result">
-        <div id="live-clock" class="live-clock">--:--:--</div>
-        <p id="hijri" class="hijri">----</p>
-        <section class="weather-card" aria-live="polite">
-          <p class="weather-title">Kista väder</p>
-          <p id="weather-current" class="weather-current">بنحمّل الطقس...</p>
-          <p id="weather-extra" class="weather-extra"></p>
-          <div id="weather-hours" class="weather-hours"></div>
-        </section>
-        <div class="result-head">
-          <div class="date-nav">
-            <button id="prev-day-btn" type="button">← Prev</button>
-            <input id="date-picker" type="date" />
-            <button id="next-day-btn" type="button">Next →</button>
-          </div>
-          <button id="load-btn" type="button">Refresh</button>
-        </div>
-        <div class="manual-time-controls">
-          <select id="manual-prayer-select" aria-label="Prayer name"></select>
-          <input id="manual-time-input" type="time" aria-label="Prayer time" />
-          <button id="set-manual-time-btn" type="button">Set prayer time</button>
-          <button id="clear-manual-times-btn" type="button">Clear manual times</button>
-        </div>
-        <p id="manual-override-note" class="manual-override-note"></p>
-        <div class="table-wrap">
-          <table>
-            <thead>
-              <tr id="timings-head-row"></tr>
-            </thead>
-            <tbody id="timings-body"></tbody>
-          </table>
-        </div>
-        <div class="sl-traffic-grid">
-          <section class="sl-traffic-card" aria-live="polite">
-            <p class="sl-traffic-title">SL • Nästa tåg som anländer till Kista (mot Kungsträdgården/T-Centralen)</p>
-            <p id="sl-traffic-status" class="sl-traffic-status">Loading SL train arrivals...</p>
-            <ul id="sl-traffic-list" class="sl-traffic-list"></ul>
-          </section>
-          <section class="sl-traffic-card" aria-live="polite" style="margin-left: 175px;">
-            <p class="sl-traffic-title">SL • Buss till Kista centrum från Norgegatan (179 / 685 / 687)</p>
-            <p id="sl-bus-status" class="sl-traffic-status">Loading bus arrivals at Norgegatan...</p>
-            <ul id="sl-bus-list" class="sl-traffic-list"></ul>
-          </section>
-        </div>
+  <main class="app-layout">
+    <aside class="visual-panel" aria-hidden="true">
+      <section class="weather-card" aria-live="polite">
+        <p class="weather-title">طقس كيستا</p>
+        <p id="weather-current" class="weather-current">بنحمّل الطقس...</p>
+        <p id="weather-extra" class="weather-extra"></p>
+        <div id="weather-hours" class="weather-hours"></div>
+        <div id="weather-daily" class="weather-daily"></div>
       </section>
-    </div>
+      <section class="sl-traffic-card" aria-live="polite">
+        <p class="sl-traffic-title">SL • Buss till Kista centrum från Norgegatan (179 / 685 / 687)</p>
+        <p id="sl-bus-status" class="sl-traffic-status">Loading bus arrivals at Norgegatan...</p>
+        <ul id="sl-bus-list" class="sl-traffic-list"></ul>
+      </section>
+      <section class="sl-traffic-card" aria-live="polite">
+        <p class="sl-traffic-title">SL • Nästa tåg som anländer till Kista (mot Kungsträdgården/T-Centralen)</p>
+        <p id="sl-traffic-status" class="sl-traffic-status">Loading SL train arrivals...</p>
+        <ul id="sl-traffic-list" class="sl-traffic-list"></ul>
+      </section>
+    </aside>
 
-    <p id="status" class="status"></p>
+    <section class="content-panel">
+      <div class="container">
+        <div class="preview-grid">
+          <section class="result" id="result">
+            <div id="live-clock" class="live-clock">--:--:--</div>
+            <p id="hijri" class="hijri">----</p>
+            <div class="result-head">
+              <div class="date-nav">
+                <button id="prev-day-btn" type="button">← Prev</button>
+                <input id="date-picker" type="date" />
+                <button id="next-day-btn" type="button">Next →</button>
+              </div>
+              <button id="load-btn" type="button">Refresh</button>
+            </div>
+            <div class="manual-time-controls">
+              <select id="manual-prayer-select" aria-label="Prayer name"></select>
+              <input id="manual-time-input" type="time" aria-label="Prayer time" />
+              <button id="set-manual-time-btn" type="button">Set prayer time</button>
+              <button id="clear-manual-times-btn" type="button">Clear manual times</button>
+            </div>
+            <p id="manual-override-note" class="manual-override-note"></p>
+            <div class="table-wrap">
+              <table>
+                <thead>
+                  <tr id="timings-head-row"></tr>
+                </thead>
+                <tbody id="timings-body"></tbody>
+              </table>
+            </div>
+
+          </section>
+        </div>
+        <p id="status" class="status"></p>
+      </div>
+
+
+    </section>
   </main>
 
   <!-- Audio will be generated via Web Audio API -->
@@ -70,6 +75,6 @@
   <button id="mute-btn" class="mute-btn" type="button" title="Toggle Adhan sound" style="display: none">🔊</button>
   <button id="test-adhan-btn" class="test-btn" type="button" title="Test Adhan sound">🔈 Test</button>
 
-  <script src="./app.js?v=20260706-5"></script>
+  <script src="./app.js?v=20260728-1"></script>
 </body>
 </html>
