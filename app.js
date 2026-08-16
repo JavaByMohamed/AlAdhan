@@ -23,6 +23,8 @@ const STOCKHOLM_PROFILE = {
   latitudeAdjustmentMethod: 2,
   tune: "0,-25,0,0,0,0,0,18,0"
 };
+const ISLAMISKA_TIMETABLE_LIVE_PATH = "./data/islamiskaforbundet-bonetider.live.json";
+const ISLAMISKA_TIMETABLE_SEED_PATH = "./data/islamiskaforbundet-bonetider.json";
 
 const KISTA_PROFILE = {
   latitude: 59.4032,
@@ -77,9 +79,15 @@ let slTrafficFetchInFlight = false;
 let lastSlTrafficFetchAt = 0;
 let slBusFetchInFlight = false;
 let lastSlBusFetchAt = 0;
+let islamiskaTimetableByDate = null;
+let islamiskaTimetableLoadPromise = null;
+let islamiskaTimetableLoadedAt = 0;
+let lastPrayerTimesFetchAt = 0;
 
 const WEATHER_REFRESH_MS = 10 * 60 * 1000;
 const SL_TRAFFIC_REFRESH_MS = 5 * 60 * 1000;
+const PRAYER_TIMES_REFRESH_MS = 5 * 60 * 1000;
+const LOCAL_TIMETABLE_CACHE_MS = 5 * 60 * 1000;
 const PAGE_AUTO_REFRESH_MS = 60 * 1000;
 const CUSTOM_TIMINGS_STORAGE_KEY = "customPrayerTimingsByDate";
 let customTimingsByDate = loadCustomTimingsByDate();
@@ -257,6 +265,63 @@ function parsePrayerMinutes(value) {
   if (!value) return null;
   const [hours, minutes] = value.split(" ")[0].split(":").map(Number);
   return hours * 60 + minutes;
+}
+
+function normalizePrayerTimingsRecord(record) {
+  if (!record || typeof record !== "object") return null;
+  const normalizedRecord = {};
+  for (const prayer of PRAYER_KEYS) {
+    const value = normalizePrayerTime(record[prayer.key]);
+    if (!value) return null;
+    normalizedRecord[prayer.key] = value;
+  }
+  return normalizedRecord;
+}
+
+async function loadIslamiskaTimetableByDate() {
+  const isCacheFresh =
+    islamiskaTimetableByDate &&
+    Date.now() - islamiskaTimetableLoadedAt < LOCAL_TIMETABLE_CACHE_MS;
+  if (isCacheFresh) return islamiskaTimetableByDate;
+  if (islamiskaTimetableLoadPromise) return islamiskaTimetableLoadPromise;
+
+  islamiskaTimetableLoadPromise = (async () => {
+    const cacheBuster = `t=${Math.floor(Date.now() / LOCAL_TIMETABLE_CACHE_MS)}`;
+    let raw = null;
+
+    for (const path of [ISLAMISKA_TIMETABLE_LIVE_PATH, ISLAMISKA_TIMETABLE_SEED_PATH]) {
+      try {
+        const response = await fetch(`${path}?${cacheBuster}`, { cache: "no-store" });
+        if (!response.ok) continue;
+        const payload = await response.json();
+        if (payload?.timesByDate && typeof payload.timesByDate === "object") {
+          raw = payload.timesByDate;
+          break;
+        }
+      } catch {
+        // Try fallback source.
+      }
+    }
+    if (!raw) throw new Error("Could not load Islamiska Förbundet timetable.");
+
+    const normalized = {};
+    for (const [dateKey, record] of Object.entries(raw)) {
+      const normalizedRecord = normalizePrayerTimingsRecord(record);
+      if (normalizedRecord) {
+        normalized[dateKey] = normalizedRecord;
+      }
+    }
+
+    islamiskaTimetableByDate = normalized;
+    islamiskaTimetableLoadedAt = Date.now();
+    return islamiskaTimetableByDate;
+  })();
+
+  try {
+    return await islamiskaTimetableLoadPromise;
+  } finally {
+    islamiskaTimetableLoadPromise = null;
+  }
 }
 
 function getStockholmMinutes(date = new Date()) {
@@ -859,18 +924,34 @@ async function fetchPrayerTimes() {
   fetchInFlight = true;
 
   const date = getSelectedDateFormatted();
-  const url =
-    `https://api.aladhan.com/v1/timings/${date}` +
-    `?latitude=${encodeURIComponent(STOCKHOLM_PROFILE.latitude)}` +
-    `&longitude=${encodeURIComponent(STOCKHOLM_PROFILE.longitude)}` +
-    `&method=${encodeURIComponent(STOCKHOLM_PROFILE.method)}` +
-    `&school=${encodeURIComponent(STOCKHOLM_PROFILE.school)}` +
-    `&latitudeAdjustmentMethod=${encodeURIComponent(
-      STOCKHOLM_PROFILE.latitudeAdjustmentMethod
-    )}` +
-    `&tune=${encodeURIComponent(STOCKHOLM_PROFILE.tune)}`;
 
   try {
+    try {
+      const localTimetable = await loadIslamiskaTimetableByDate();
+      const siteTimings = localTimetable[date];
+      if (siteTimings) {
+        const effectiveTimings = applyCustomTimings(siteTimings, date);
+        renderTimings(effectiveTimings, "");
+        renderedForDate = date;
+        lastPrayerTimesFetchAt = Date.now();
+        setStatus("");
+        return;
+      }
+    } catch {
+      // Continue with API fallback when local timetable is unavailable.
+    }
+
+    const url =
+      `https://api.aladhan.com/v1/timings/${date}` +
+      `?latitude=${encodeURIComponent(STOCKHOLM_PROFILE.latitude)}` +
+      `&longitude=${encodeURIComponent(STOCKHOLM_PROFILE.longitude)}` +
+      `&method=${encodeURIComponent(STOCKHOLM_PROFILE.method)}` +
+      `&school=${encodeURIComponent(STOCKHOLM_PROFILE.school)}` +
+      `&latitudeAdjustmentMethod=${encodeURIComponent(
+        STOCKHOLM_PROFILE.latitudeAdjustmentMethod
+      )}` +
+      `&tune=${encodeURIComponent(STOCKHOLM_PROFILE.tune)}`;
+
     const response = await fetch(url);
     const payload = await response.json();
 
@@ -881,6 +962,8 @@ async function fetchPrayerTimes() {
     const effectiveTimings = applyCustomTimings(payload.data.timings, date);
     renderTimings(effectiveTimings, "");
     renderedForDate = date;
+    lastPrayerTimesFetchAt = Date.now();
+    setStatus("Local timetable missing for this date, using API fallback.");
   } catch (error) {
     resultEl.classList.add("hidden");
     setStatus(
@@ -943,6 +1026,11 @@ setInterval(() => {
 
   const currentDate = getTodayDate();
   if (!fetchInFlight && renderedForDate && currentDate !== renderedForDate) {
+    fetchPrayerTimes();
+  }
+
+  const viewingToday = getSelectedDateFormatted() === currentDate;
+  if (!fetchInFlight && viewingToday && Date.now() - lastPrayerTimesFetchAt >= PRAYER_TIMES_REFRESH_MS) {
     fetchPrayerTimes();
   }
 

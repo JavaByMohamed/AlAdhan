@@ -4,7 +4,8 @@
   "private": true,
   "description": "AlAdhan prayer times web app",
   "scripts": {
-    "start": "sh -c 'pids=$(lsof -ti tcp:3000 2>/dev/null); if [ -n \"$pids\" ]; then kill $pids; fi; python3 -m http.server 3000'",
-    "dev": "npm start"
+    "start": "node ./scripts/run-with-sync.mjs",
+    "dev": "npm start",
+    "sync:bonetider": "node ./scripts/sync-islamiska-times.mjs"
   }
 }
