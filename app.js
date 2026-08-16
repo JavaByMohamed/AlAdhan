@@ -32,7 +32,7 @@ const KISTA_PROFILE = {
 };
 const KISTA_SL_SITE_ID = 9302;
 const NORGEGATAN_SL_SITE_ID = 3759;
-const NORGEGATAN_KISTA_LINES = new Set(["179", "685", "687"]);
+const NORGEGATAN_KISTA_LINES = new Set(["179", "685", "687", "612"]);
 
 const statusEl = document.getElementById("status");
 const liveClockEl = document.getElementById("live-clock");
@@ -744,11 +744,13 @@ async function fetchSlTrafficDepartures() {
 
 function isNorgegatanBusTowardKista(departure) {
   const lineDesignation = String(departure?.line?.designation || "");
-  const destination = String(departure?.destination || "").toLowerCase();
-  const direction = String(departure?.direction || "").toLowerCase();
+  const destination = String(departure?.destination || "").toLowerCase().trim();
+  const excludedDestinations = ["sollentuna station", "åkersberga", "vallentuna station", "arninge station"];
+  const minutesUntilDeparture = getMinutesUntilDeparture(departure);
   return (
     NORGEGATAN_KISTA_LINES.has(lineDesignation) &&
-    (destination.includes("kista") || direction.includes("kista"))
+    !excludedDestinations.some(excluded => destination.includes(excluded)) &&
+    minutesUntilDeparture <= 45
   );
 }
 
