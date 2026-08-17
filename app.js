@@ -750,7 +750,7 @@ function isNorgegatanBusTowardKista(departure) {
   return (
     NORGEGATAN_KISTA_LINES.has(lineDesignation) &&
     !excludedDestinations.some(excluded => destination.includes(excluded)) &&
-    minutesUntilDeparture <= 45
+    minutesUntilDeparture <= 15
   );
 }
 
