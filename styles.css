@@ -654,6 +654,15 @@ tbody td.is-next-prayer::after {
 }
 
 @media (max-width: 760px) {
+  .app-layout {
+    height: auto;
+    overflow: visible;
+  }
+
+  .visual-panel {
+    min-height: 0;
+  }
+
   .preview-grid {
     grid-template-columns: 1fr;
   }
@@ -680,6 +689,37 @@ tbody td.is-next-prayer::after {
 
   .manual-time-controls {
     grid-template-columns: 1fr;
+  }
+
+  .clock-banner {
+    position: static;
+    top: auto;
+    z-index: auto;
+    padding: 0.4rem;
+    border-radius: 12px;
+  }
+
+  .live-clock-display {
+    gap: 0.3rem;
+  }
+
+  .live-clock-display::before {
+    width: 7px;
+    height: 32px;
+  }
+
+  .live-clock-tile {
+    min-height: 82px;
+    border-radius: 10px;
+  }
+
+  .live-clock-number {
+    font-size: clamp(2.2rem, 13vw, 3.1rem);
+  }
+
+  .hijri {
+    margin-top: 0.3rem;
+    font-size: clamp(0.95rem, 3.6vw, 1.2rem);
   }
 
   .sl-traffic-grid {
@@ -709,12 +749,25 @@ tbody td.is-next-prayer::after {
 }
 
 @media (max-width: 480px) {
+  .visual-panel {
+    gap: 0.35rem;
+    padding: 0.35rem;
+  }
+
   .container {
     padding: 0.6rem;
     margin: 0.5rem auto;
   }
 
+  .weather-card {
+    padding: 0.55rem;
+  }
+
   .weather-title {
     font-size: 0.9rem;
+  }
+
+  .weather-current {
+    font-size: clamp(1.9rem, 10vw, 2.4rem);
   }
 }
