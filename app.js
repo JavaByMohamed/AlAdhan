@@ -645,8 +645,10 @@ function isKistaArrivalTowardCity(departure) {
   const destination = String(departure?.destination || "").toLowerCase();
   const direction = String(departure?.direction || "").toLowerCase();
   const stopPointDesignation = String(departure?.stop_point?.designation || "");
+  const minutesUntilDeparture = getMinutesUntilDeparture(departure);
   return (
     stopPointDesignation === "2" &&
+    minutesUntilDeparture <= 20 &&
     (destination.includes("t-centralen") ||
       direction.includes("kungsträdgården") ||
       direction.includes("kungstradgarden"))
