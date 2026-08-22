@@ -15,10 +15,10 @@ It now uses a local timetable file sourced from **Islamiska Förbundet**:
 - Live public file: `data/islamiskaforbundet-bonetider.live.json` (runtime-updated in production)
 - Seed fallback file: `data/islamiskaforbundet-bonetider.json`
 
-If a selected date is missing from that local timetable, it falls back to the AlAdhan API.
+If a selected date is missing from that local timetable, prayer times are not loaded and an error is shown.
 
 You can also manually set prayer times for any selected date from the UI.
-Manual values are saved in your browser and override API values for that date until cleared.
+Manual values are saved in your browser and override timetable values for that date until cleared.
 
 ## Run
 
