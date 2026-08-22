@@ -355,7 +355,23 @@ function updateClock() {
 
 function clock() {
   const now = new Date();
-  liveClockEl.textContent = stockholmTimeFormatter.format(now);
+  const { hour, minute } = getStockholmParts(now);
+  const hour24 = Number(hour);
+  const hourText = String(hour24).padStart(2, "0");
+  const minuteText = String(minute).padStart(2, "0");
+  const timeKey = `${String(hour24).padStart(2, "0")}:${minuteText}`;
+
+  liveClockEl.dataset.timeKey = timeKey;
+  liveClockEl.innerHTML = `
+    <div class="live-clock-display" aria-label="${hourText}:${minuteText}">
+      <div class="live-clock-tile live-clock-hour">
+        <span class="live-clock-number">${hourText}</span>
+      </div>
+      <div class="live-clock-tile live-clock-minute">
+        <span class="live-clock-number">${minuteText}</span>
+      </div>
+    </div>
+  `;
   hijriEl.textContent = `${stockholmHijriFormatter.format(now)}`;
 }
 
@@ -394,6 +410,10 @@ function updateNextPrayerHighlight() {
 }
 
 function getLiveClockTimeKey() {
+  const dataTimeKey = String(liveClockEl.dataset.timeKey || "").trim();
+  if (/^([01]\d|2[0-3]):([0-5]\d)$/.test(dataTimeKey)) {
+    return dataTimeKey;
+  }
   const displayedClockValue = String(liveClockEl.textContent || "").trim();
   const match = displayedClockValue.match(/^(\d{2}):(\d{2})/);
   if (!match) return null;
