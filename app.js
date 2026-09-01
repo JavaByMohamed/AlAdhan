@@ -39,6 +39,7 @@ const liveClockEl = document.getElementById("live-clock");
 // const liveClockDateEl = document.getElementById("live-clock-date");
 // const liveClockWeekDayEl = document.getElementById("live-clock-weekday");
 const hijriEl = document.getElementById("hijri");
+const hijriGregorianEl = document.getElementById("hijri-gregorian");
 const weatherCurrentEl = document.getElementById("weather-current");
 const weatherExtraEl = document.getElementById("weather-extra");
 const weatherHoursEl = document.getElementById("weather-hours");
@@ -397,6 +398,9 @@ function clock() {
     </div>
   `;
   hijriEl.textContent = `${stockholmHijriFormatter.format(now)}`;
+  if (hijriGregorianEl) {
+    hijriGregorianEl.textContent = stockholmDateFormatter.format(now);
+  }
 }
 
 function setActivePrayerCell(cell) {

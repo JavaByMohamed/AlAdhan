@@ -260,6 +260,15 @@ h1 {
   text-shadow: 0 1px 4px rgb(0 0 0 / 0.35);
 }
 
+.hijri-gregorian {
+  line-height: 1.1;
+  text-align: center;
+  margin: 0.2rem 0 0;
+  font-size: clamp(0.82rem, 1.3vw, 1rem);
+  font-weight: 700;
+  color: #cbd5e1;
+}
+
 .clock-banner {
   margin: 0;
   padding: 0.5rem;
@@ -720,6 +729,10 @@ tbody td.is-next-prayer::after {
   .hijri {
     margin-top: 0.3rem;
     font-size: clamp(0.95rem, 3.6vw, 1.2rem);
+  }
+
+  .hijri-gregorian {
+    font-size: clamp(0.75rem, 3vw, 0.9rem);
   }
 
   .sl-traffic-grid {
