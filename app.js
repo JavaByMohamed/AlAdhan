@@ -278,6 +278,30 @@ function normalizePrayerTimingsRecord(record) {
   return normalizedRecord;
 }
 
+async function loadAlAdhanTimingsForDate(dateKey) {
+  const url =
+    `https://api.aladhan.com/v1/timings/${dateKey}` +
+    `?latitude=${encodeURIComponent(STOCKHOLM_PROFILE.latitude)}` +
+    `&longitude=${encodeURIComponent(STOCKHOLM_PROFILE.longitude)}` +
+    `&method=${encodeURIComponent(STOCKHOLM_PROFILE.method)}` +
+    `&school=${encodeURIComponent(STOCKHOLM_PROFILE.school)}` +
+    `&latitudeAdjustmentMethod=${encodeURIComponent(STOCKHOLM_PROFILE.latitudeAdjustmentMethod)}` +
+    `&tune=${encodeURIComponent(STOCKHOLM_PROFILE.tune)}`;
+
+  const response = await fetch(url);
+  const payload = await response.json();
+
+  if (!response.ok || payload.code !== 200 || !payload.data?.timings) {
+    throw new Error(payload?.data || "Could not load prayer times.");
+  }
+
+  const normalized = normalizePrayerTimingsRecord(payload.data.timings);
+  if (!normalized) {
+    throw new Error("Received incomplete prayer times from API.");
+  }
+  return normalized;
+}
+
 async function loadIslamiskaTimetableByDate() {
   const isCacheFresh =
     islamiskaTimetableByDate &&
@@ -953,31 +977,13 @@ async function fetchPrayerTimes() {
     const localTimetable = await loadIslamiskaTimetableByDate();
     const siteTimings = localTimetable[date];
     if (!siteTimings) {
-      // API fallback intentionally disabled.
-      // const url =
-      //   `https://api.aladhan.com/v1/timings/${date}` +
-      //   `?latitude=${encodeURIComponent(STOCKHOLM_PROFILE.latitude)}` +
-      //   `&longitude=${encodeURIComponent(STOCKHOLM_PROFILE.longitude)}` +
-      //   `&method=${encodeURIComponent(STOCKHOLM_PROFILE.method)}` +
-      //   `&school=${encodeURIComponent(STOCKHOLM_PROFILE.school)}` +
-      //   `&latitudeAdjustmentMethod=${encodeURIComponent(
-      //     STOCKHOLM_PROFILE.latitudeAdjustmentMethod
-      //   )}` +
-      //   `&tune=${encodeURIComponent(STOCKHOLM_PROFILE.tune)}`;
-      //
-      // const response = await fetch(url);
-      // const payload = await response.json();
-      //
-      // if (!response.ok || payload.code !== 200 || !payload.data?.timings) {
-      //   throw new Error(payload?.data || "Could not load prayer times.");
-      // }
-      //
-      // const effectiveTimings = applyCustomTimings(payload.data.timings, date);
-      // renderTimings(effectiveTimings, "");
-      // renderedForDate = date;
-      // lastPrayerTimesFetchAt = Date.now();
-      // setStatus("Local timetable missing for this date, using API fallback.");
-      throw new Error("Local timetable missing for this date.");
+      const apiTimings = await loadAlAdhanTimingsForDate(date);
+      const effectiveTimings = applyCustomTimings(apiTimings, date);
+      renderTimings(effectiveTimings, "");
+      renderedForDate = date;
+      lastPrayerTimesFetchAt = Date.now();
+      setStatus("Local timetable missing for this date, using API fallback.");
+      return;
     }
 
     const effectiveTimings = applyCustomTimings(siteTimings, date);

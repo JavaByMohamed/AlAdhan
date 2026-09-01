@@ -5,6 +5,8 @@ import { execFile } from "node:child_process";
 import { promisify } from "node:util";
 
 const SOURCE_URL = "https://www.islamiskaforbundet.se/wp-json/wp/v2/pages?slug=bonetider";
+const WIDGET_URL = "https://www.islamiskaforbundet.se/wp-content/plugins/bonetider/Bonetider_Widget.php";
+const DEFAULT_CITY = "Stockholm, SE";
 const BROWSER_UA = "Mozilla/5.0 (Windows NT 10.0; Win64; x64)";
 const SEED_OUTPUT_PATH = new URL("../data/islamiskaforbundet-bonetider.json", import.meta.url);
 const LIVE_OUTPUT_PATH = new URL("../data/islamiskaforbundet-bonetider.live.json", import.meta.url);
@@ -18,13 +20,17 @@ const stockholmNow = new Date(
   }).format(new Date())
 );
 
-const inputMonth = Number(process.argv[2] || stockholmNow.getMonth() + 1);
-const inputYear = Number(process.argv[3] || stockholmNow.getFullYear());
+const monthArgRaw = process.argv[2];
+const yearArgRaw = process.argv[3];
+const hasMonthArg = monthArgRaw !== undefined;
+const hasYearArg = yearArgRaw !== undefined;
+const inputMonth = hasMonthArg ? Number(monthArgRaw) : null;
+const inputYear = hasYearArg ? Number(yearArgRaw) : null;
 
-if (!Number.isInteger(inputMonth) || inputMonth < 1 || inputMonth > 12) {
+if (hasMonthArg && (!Number.isInteger(inputMonth) || inputMonth < 1 || inputMonth > 12)) {
   throw new Error("Month must be an integer from 1 to 12.");
 }
-if (!Number.isInteger(inputYear) || inputYear < 2000 || inputYear > 3000) {
+if (hasYearArg && (!Number.isInteger(inputYear) || inputYear < 2000 || inputYear > 3000)) {
   throw new Error("Year must be a valid 4-digit year.");
 }
 
@@ -37,50 +43,106 @@ function toDateKey(day, month, year) {
   return `${String(day).padStart(2, "0")}-${String(month).padStart(2, "0")}-${year}`;
 }
 
-const { stdout: html } = await execFileAsync("curl", [
-  "-sL",
-  "-H",
-  `User-Agent: ${BROWSER_UA}`,
-  "-H",
-  "Accept: application/json",
-  SOURCE_URL
-]);
+function parseTimingsByDate(renderedHtml, month, year) {
+  const timesByDate = {};
+  const dayRowPattern =
+    /<td>\s*(\d{1,2})\s*<\/td>\s*<td[^>]*>\s*([0-2]\d:[0-5]\d)\s*<\/td>\s*<td[^>]*>\s*([0-2]\d:[0-5]\d)\s*<\/td>\s*<td[^>]*>\s*([0-2]\d:[0-5]\d)\s*<\/td>\s*<td[^>]*>\s*([0-2]\d:[0-5]\d)\s*<\/td>\s*<td[^>]*>\s*([0-2]\d:[0-5]\d)\s*<\/td>\s*<td[^>]*>\s*([0-2]\d:[0-5]\d)\s*<\/td>/gi;
 
-if (!html || !/^\s*\[/.test(html)) {
-  throw new Error("Failed to fetch bonetider JSON from source.");
+  for (const match of renderedHtml.matchAll(dayRowPattern)) {
+    const day = Number(match[1]);
+    if (!Number.isInteger(day) || day < 1 || day > 31) continue;
+
+    const timing = {
+      Fajr: normalizeTime(match[2]),
+      Sunrise: normalizeTime(match[3]),
+      Dhuhr: normalizeTime(match[4]),
+      Asr: normalizeTime(match[5]),
+      Maghrib: normalizeTime(match[6]),
+      Isha: normalizeTime(match[7])
+    };
+
+    if (Object.values(timing).some((value) => value === null)) continue;
+    timesByDate[toDateKey(day, month, year)] = timing;
+  }
+
+  return timesByDate;
 }
 
-const pages = JSON.parse(html);
-if (!Array.isArray(pages) || pages.length === 0) {
-  throw new Error("Could not find bonetider page via WordPress API.");
+function parseSourceYear(renderedHtml) {
+  const yearMatch = renderedHtml.match(/(\d{4})\s*B[öo]netider/i);
+  if (yearMatch) return Number(yearMatch[1]);
+  return stockholmNow.getFullYear();
 }
 
+function parseSelectedMonth(renderedHtml) {
+  const selectedMonthMatch = renderedHtml.match(
+    /<select[^>]*id="ifis_bonetider_page_months"[\s\S]*?<option\s+value="(\d{1,2})"\s+selected="selected"/i
+  );
+  if (!selectedMonthMatch) return stockholmNow.getMonth() + 1;
+  const parsed = Number(selectedMonthMatch[1]);
+  return Number.isInteger(parsed) && parsed >= 1 && parsed <= 12
+    ? parsed
+    : stockholmNow.getMonth() + 1;
+}
+
+async function fetchSourcePageJson() {
+  const { stdout: html } = await execFileAsync("curl", [
+    "-sL",
+    "-H",
+    `User-Agent: ${BROWSER_UA}`,
+    "-H",
+    "Accept: application/json",
+    SOURCE_URL
+  ]);
+
+  if (!html || !/^\s*\[/.test(html)) {
+    throw new Error("Failed to fetch bonetider JSON from source.");
+  }
+
+  const pages = JSON.parse(html);
+  if (!Array.isArray(pages) || pages.length === 0) {
+    throw new Error("Could not find bonetider page via WordPress API.");
+  }
+  return pages;
+}
+
+async function fetchMonthHtml(month) {
+  const { stdout } = await execFileAsync("curl", [
+    "-sL",
+    "-H",
+    `User-Agent: ${BROWSER_UA}`,
+    "--data-urlencode",
+    `ifis_bonetider_page_city=${DEFAULT_CITY}`,
+    "--data-urlencode",
+    `ifis_bonetider_page_month=${month}`,
+    WIDGET_URL
+  ]);
+  return stdout;
+}
+
+const pages = await fetchSourcePageJson();
 const renderedHtml = String(pages[0]?.content?.rendered || "");
+const sourceYear = inputYear ?? parseSourceYear(renderedHtml);
+const selectedMonth = parseSelectedMonth(renderedHtml);
+const monthsToSync = hasMonthArg
+  ? [inputMonth]
+  : Array.from({ length: 12 - selectedMonth + 1 }, (_, index) => selectedMonth + index);
+
 const timesByDate = {};
-const dayRowPattern =
-  /<td>\s*(\d{1,2})\s*<\/td>\s*<td[^>]*>\s*([0-2]\d:[0-5]\d)\s*<\/td>\s*<td[^>]*>\s*([0-2]\d:[0-5]\d)\s*<\/td>\s*<td[^>]*>\s*([0-2]\d:[0-5]\d)\s*<\/td>\s*<td[^>]*>\s*([0-2]\d:[0-5]\d)\s*<\/td>\s*<td[^>]*>\s*([0-2]\d:[0-5]\d)\s*<\/td>\s*<td[^>]*>\s*([0-2]\d:[0-5]\d)\s*<\/td>/gi;
 
-for (const match of renderedHtml.matchAll(dayRowPattern)) {
-  const day = Number(match[1]);
-  if (!Number.isInteger(day) || day < 1 || day > 31) continue;
-
-  const timing = {
-    Fajr: normalizeTime(match[2]),
-    Sunrise: normalizeTime(match[3]),
-    Dhuhr: normalizeTime(match[4]),
-    Asr: normalizeTime(match[5]),
-    Maghrib: normalizeTime(match[6]),
-    Isha: normalizeTime(match[7])
-  };
-
-  if (Object.values(timing).some((value) => value === null)) continue;
-  timesByDate[toDateKey(day, inputMonth, inputYear)] = timing;
+for (const month of monthsToSync) {
+  const monthHtml = month === selectedMonth ? renderedHtml : await fetchMonthHtml(month);
+  const monthTimes = parseTimingsByDate(monthHtml, month, sourceYear);
+  Object.assign(timesByDate, monthTimes);
 }
 
 const output = {
-  source: SOURCE_URL,
-  month: `${String(inputMonth).padStart(2, "0")}-${inputYear}`,
+  source: "https://www.islamiskaforbundet.se/bonetider/",
+  month: hasMonthArg
+    ? `${String(inputMonth).padStart(2, "0")}-${sourceYear}`
+    : `${String(selectedMonth).padStart(2, "0")}-${sourceYear}..12-${sourceYear}`,
   generatedAt: new Date().toISOString(),
+  monthsSynced: monthsToSync.map((month) => `${String(month).padStart(2, "0")}-${sourceYear}`),
   timesByDate
 };
 

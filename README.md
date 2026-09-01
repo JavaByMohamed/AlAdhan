@@ -15,7 +15,7 @@ It now uses a local timetable file sourced from **Islamiska Förbundet**:
 - Live public file: `data/islamiskaforbundet-bonetider.live.json` (runtime-updated in production)
 - Seed fallback file: `data/islamiskaforbundet-bonetider.json`
 
-If a selected date is missing from that local timetable, prayer times are not loaded and an error is shown.
+If a selected date is missing from that local timetable, the app falls back to the AlAdhan API using the same Stockholm profile.
 
 You can also manually set prayer times for any selected date from the UI.
 Manual values are saved in your browser and override timetable values for that date until cleared.
@@ -30,7 +30,7 @@ When you run the app with `npm start`, it:
 1. Syncs `data/islamiskaforbundet-bonetider.live.json` once at startup.
 2. Syncs again automatically every day at **00:00 (Europe/Stockholm)** while the server is running.
 
-The source table normally includes the rest of the month, which gives at least one week ahead in practice.
+Each sync now pulls **the currently selected month on islamiskaforbundet.se through December** and merges it into the local live JSON, so upcoming months stay preloaded.
 
 The sync compares new times with the current live JSON and only rewrites the live file when values changed.
 
@@ -48,7 +48,7 @@ Run:
 npm run sync:bonetider
 ```
 
-Optional month/year (defaults to current month/year in Stockholm):
+Optional month/year (sync one specific month; default behavior is syncing current month through December):
 
 ```bash
 node ./scripts/sync-islamiska-times.mjs 8 2026
