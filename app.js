@@ -69,6 +69,10 @@ const manualOverrideNoteEl = document.getElementById("manual-override-note");
 const nextPrayerLabelEl = document.getElementById("next-prayer-label");
 const nextPrayerCountdownEl = document.getElementById("next-prayer-countdown");
 const nextPrayerTimeEl = document.getElementById("next-prayer-time");
+const makkahStreamToggleEl = document.getElementById("makkah-stream-toggle");
+const makkahStreamPanelEl = document.getElementById("makkah-stream-panel");
+const makkahStreamPlayerEl = document.getElementById("makkah-stream-player");
+const makkahStreamCloseEl = document.getElementById("makkah-stream-close");
 
 let currentTimings = null;
 let countdownTimingsByDate = {};
@@ -1096,6 +1100,26 @@ function initializeManualPrayerControls() {
   updateManualOverrideNote();
 }
 
+function closeMakkahStream() {
+  makkahStreamPanelEl.hidden = true;
+  makkahStreamPlayerEl.removeAttribute("src");
+  makkahStreamToggleEl.hidden = false;
+  makkahStreamToggleEl.setAttribute("aria-expanded", "false");
+  makkahStreamToggleEl.focus();
+}
+
+makkahStreamToggleEl.addEventListener("click", () => {
+  makkahStreamPlayerEl.src = "https://www.youtube.com/embed/eC4LfEVxvKg?autoplay=1&mute=1&playsinline=1&rel=0";
+  makkahStreamPanelEl.hidden = false;
+  makkahStreamToggleEl.hidden = true;
+  makkahStreamToggleEl.setAttribute("aria-expanded", "true");
+  makkahStreamCloseEl.focus();
+});
+makkahStreamCloseEl.addEventListener("click", closeMakkahStream);
+makkahStreamPanelEl.addEventListener("keydown", (event) => {
+  if (event.key === "Escape") closeMakkahStream();
+});
+
 loadBtn.addEventListener("click", fetchPrayerTimes);
 prevDayBtn.addEventListener("click", setPreviousDay);
 nextDayBtn.addEventListener("click", setNextDay);
@@ -1169,7 +1193,8 @@ setInterval(() => {
 
 setInterval(() => {
   const viewingToday = getSelectedDateFormatted() === getTodayDate();
-  if (!viewingToday || fetchInFlight || !adhanAudioEl.paused || document.visibilityState !== "visible") {
+  if (!viewingToday || fetchInFlight || !adhanAudioEl.paused ||
+      !makkahStreamPanelEl.hidden || document.visibilityState !== "visible") {
     return;
   }
 

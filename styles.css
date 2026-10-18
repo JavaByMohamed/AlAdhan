@@ -427,6 +427,63 @@ button:hover {
   display: none;
 }
 
+.makkah-stream-toggle,
+.makkah-stream-panel {
+  position: fixed;
+  right: 1rem;
+  bottom: 1rem;
+  z-index: 90;
+  box-shadow: 0 6px 24px rgb(0 0 0 / 0.3);
+}
+
+.makkah-stream-panel {
+  width: min(400px, calc(100vw - 2rem));
+  max-height: calc(100dvh - 2rem);
+  overflow: auto;
+  border: 1px solid #39856c;
+  border-radius: 12px;
+  background: #051e18;
+  color: #ffffff;
+}
+
+.makkah-stream-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  padding: 0.5rem 0.75rem;
+}
+
+.makkah-stream-header h2 {
+  margin: 0;
+  font-size: 1rem;
+}
+
+.makkah-stream-header button {
+  padding: 0.35rem 0.6rem;
+  font-size: 0.85rem;
+}
+
+#makkah-stream-player {
+  display: block;
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  border: 0;
+  background: #000000;
+}
+
+.makkah-stream-help {
+  margin: 0;
+  padding: 0.5rem 0.75rem;
+  font-size: 0.75rem;
+  font-weight: 400;
+  line-height: 1.4;
+}
+
+.makkah-stream-help a {
+  color: #bdebd9;
+}
+
 table {
   width: 100%;
   min-width: 320px;

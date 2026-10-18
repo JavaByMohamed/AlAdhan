@@ -29,6 +29,13 @@ tracks the live next prayer, independently of the date selected for the timetabl
 
 Open `index.html` in your browser.
 
+Click **Watch Makkah Live** to open a YouTube stream from
+[Makkah Live](https://makkahlive.net/makkahlive.aspx) in the bottom-right corner.
+It starts muted; use YouTube's controls to enable sound or fullscreen.
+Closing the player stops playback. Automatic page reloads are paused while the
+player is open. Stream availability and embedding are controlled by YouTube and
+the broadcaster; the player includes a link to the source site if unavailable.
+
 The app is configured with a Stockholm-specific profile to align with local published timetable behavior.
 
 When you run the app with `npm start`, it:
