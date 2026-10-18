@@ -9,6 +9,16 @@ A simple front-end app that shows today's prayer times for:
 - Maghrib
 - Isha
 
+The Makkah dashboard uses a solid charcoal sidebar with glass cards for the clock, weather,
+and departures, with an upper prayer panel and a six-stop prayer timeline.
+On narrower screens, the sidebar cards move below the prayer view. Background
+and video controls remain in the bottom-right corner.
+The desktop sidebar is 360px wide, alongside a compact
+820px prayer panel. Transit cards show the first two matching departures. Weather
+includes today's high/low and an expandable daily forecast below the hourly view.
+The image, live video, and gradient overlay are clipped to the main stage to the
+right of the sidebar, with the prayer panel and background controls layered above.
+
 It now uses a local timetable file sourced from **Islamiska Förbundet**:
 
 - Source: https://www.islamiskaforbundet.se/bonetider/
@@ -35,6 +45,12 @@ It starts muted; use YouTube's controls to enable sound or fullscreen.
 Closing the player stops playback. Automatic page reloads are paused while the
 player is open. Stream availability and embedding are controlled by YouTube and
 the broadcaster; the player includes a link to the source site if unavailable.
+
+Use **Use live background** to replace `img_2.png` behind the prayer display with
+the muted Makkah stream. **Use picture background** restores the image and stops
+the stream. This choice is saved in your browser. The corner player is available
+in picture mode; live background mode keeps the countdown and prayer times in front
+and provides a source link if the stream is unavailable.
 
 The app is configured with a Stockholm-specific profile to align with local published timetable behavior.
 

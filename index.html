@@ -4,39 +4,58 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>AlAdhan - Daily Prayer Times</title>
-  <link rel="stylesheet" href="./styles.css?v=20261018-2" />
+  <link rel="stylesheet" href="./styles.css?v=20261018-6" />
 </head>
 <body>
-  <main class="app-layout">
-    <aside class="visual-panel" aria-hidden="true">
+  <div class="app-layout">
+    <aside class="visual-panel" aria-label="Clock, weather and departures">
       <section class="clock-banner" aria-live="polite">
         <div id="live-clock" class="live-clock">--:--:--</div>
         <p id="hijri" class="hijri">----</p>
         <p id="hijri-gregorian" class="hijri-gregorian">----</p>
       </section>
       <section class="weather-card" aria-live="polite">
-        <p class="weather-title">طقس كيستا</p>
-        <p id="weather-current" class="weather-current">بنحمّل الطقس...</p>
-        <p id="weather-extra" class="weather-extra"></p>
+        <p class="weather-title">Kista weather <span lang="ar" dir="rtl">طقس كيستا</span></p>
+        <div class="weather-summary">
+          <span id="weather-icon" class="weather-icon" aria-hidden="true"></span>
+          <p id="weather-current" class="weather-current">--°</p>
+        </div>
+        <p id="weather-extra" class="weather-extra">بنحمّل الطقس...</p>
+        <p id="weather-high-low" class="weather-high-low"></p>
         <div id="weather-hours" class="weather-hours"></div>
-        <div id="weather-daily" class="weather-daily"></div>
+        <details class="weather-outlook">
+          <summary>Daily forecast</summary>
+          <div id="weather-daily" class="weather-daily"></div>
+        </details>
       </section>
       <section class="sl-traffic-card" aria-live="polite">
-        <p class="sl-traffic-title">SL • Buss till Kista centrum från Norgegatan (179 / 685 / 687)</p>
+        <h2 class="sl-traffic-title"><span class="transit-icon" aria-hidden="true">B</span> To Kista</h2>
+        <p class="sl-traffic-subtitle">From Norgegatan</p>
         <p id="sl-bus-status" class="sl-traffic-status">Loading bus arrivals at Norgegatan...</p>
         <ul id="sl-bus-list" class="sl-traffic-list"></ul>
       </section>
       <section class="sl-traffic-card" aria-live="polite">
-        <p class="sl-traffic-title">SL • Nästa tåg som anländer till Kista (mot Kungsträdgården/T-Centralen)</p>
+        <h2 class="sl-traffic-title"><span class="transit-icon" aria-hidden="true">T</span> To Kungsträdgården</h2>
+        <p class="sl-traffic-subtitle">Arriving at Kista · via T-Centralen</p>
         <p id="sl-traffic-status" class="sl-traffic-status">Loading SL train arrivals...</p>
         <ul id="sl-traffic-list" class="sl-traffic-list"></ul>
       </section>
     </aside>
 
-    <section class="content-panel">
+    <main class="main-stage content-panel">
+      <img class="main-stage__background" src="./img_2.png" alt="" />
+      <section id="makkah-stream-panel" class="makkah-stream-panel main-stage__video" aria-labelledby="makkah-stream-title" hidden>
+        <div class="makkah-stream-header">
+          <h2 id="makkah-stream-title">Makkah Live</h2>
+          <button id="makkah-stream-close" type="button" aria-label="Close Makkah Live">Close</button>
+        </div>
+        <iframe id="makkah-stream-player" title="Makkah Live YouTube stream" allow="autoplay; encrypted-media; picture-in-picture; fullscreen" allowfullscreen referrerpolicy="strict-origin-when-cross-origin"></iframe>
+        <p class="makkah-stream-help">Use the player controls for sound. If unavailable, <a href="https://makkahlive.net/makkahlive.aspx" target="_blank" rel="noopener noreferrer">open Makkah Live</a>.</p>
+      </section>
       <div class="container">
         <div class="preview-grid">
           <section class="prayer-countdown" aria-labelledby="next-prayer-label">
+            <p class="section-label">Next prayer</p>
             <p id="next-prayer-label" class="prayer-countdown-label" aria-live="polite">Loading next prayer...</p>
             <p id="next-prayer-countdown" class="prayer-countdown-time" role="timer" aria-live="off" aria-label="Time remaining until next prayer">--:--:--</p>
             <p id="next-prayer-time" class="prayer-countdown-detail"></p>
@@ -57,14 +76,7 @@
               <button id="clear-manual-times-btn" type="button">Clear manual times</button>
             </div>
             <p id="manual-override-note" class="manual-override-note"></p>
-            <div class="table-wrap">
-              <table>
-                <thead>
-                  <tr id="timings-head-row"></tr>
-                </thead>
-                <tbody id="timings-body"></tbody>
-              </table>
-            </div>
+            <ol id="timings-body" class="prayer-timeline" aria-label="Daily prayer times"></ol>
 
           </section>
         </div>
@@ -72,18 +84,15 @@
       </div>
 
 
-    </section>
-  </main>
-
-  <button id="makkah-stream-toggle" class="makkah-stream-toggle" type="button" aria-controls="makkah-stream-panel" aria-expanded="false">Watch Makkah Live</button>
-  <section id="makkah-stream-panel" class="makkah-stream-panel" aria-labelledby="makkah-stream-title" hidden>
-    <div class="makkah-stream-header">
-      <h2 id="makkah-stream-title">Makkah Live</h2>
-      <button id="makkah-stream-close" type="button" aria-label="Close Makkah Live">Close</button>
-    </div>
-    <iframe id="makkah-stream-player" title="Makkah Live YouTube stream" allow="autoplay; encrypted-media; picture-in-picture; fullscreen" allowfullscreen referrerpolicy="strict-origin-when-cross-origin"></iframe>
-    <p class="makkah-stream-help">Use the player controls for sound. If unavailable, <a href="https://makkahlive.net/makkahlive.aspx" target="_blank" rel="noopener noreferrer">open Makkah Live</a>.</p>
-  </section>
+      <div class="main-stage__controls">
+        <div class="makkah-stream-controls">
+          <button id="makkah-background-toggle" type="button" aria-controls="makkah-stream-panel" aria-pressed="false">Use live background</button>
+          <button id="makkah-stream-toggle" type="button" aria-controls="makkah-stream-panel" aria-expanded="false">Watch Makkah Live</button>
+          <a id="makkah-background-help" href="https://makkahlive.net/makkahlive.aspx" target="_blank" rel="noopener noreferrer" hidden>Stream unavailable? Open Makkah Live</a>
+        </div>
+      </div>
+    </main>
+  </div>
 
   <!-- Audio will be generated via Web Audio API -->
   <audio id="adhan-audio" muted>
@@ -93,6 +102,6 @@
   <button id="mute-btn" class="mute-btn" type="button" title="Toggle Adhan sound" style="display: none">🔊</button>
   <button id="test-adhan-btn" class="test-btn" type="button" title="Test Adhan sound">🔈 Test</button>
 
-  <script src="./app.js?v=20261018-2"></script>
+  <script src="./app.js?v=20261018-6"></script>
 </body>
 </html>

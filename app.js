@@ -6,15 +6,6 @@ const PRAYER_KEYS = [
   { label: "Maghrib", ar: "المغرب", key: "Maghrib" },
   { label: "Isha", ar: "العشاء", key: "Isha" }
 ];
-const PRAYER_TABLE_COLUMNS = [
-  { label: "الفجر", key: "Fajr" },
-  { label: "الشروق", key: "Sunrise" },
-  { label: "الظهر", key: "Dhuhr" },
-  { label: "العصر", key: "Asr" },
-  { label: "المغرب", key: "Maghrib" },
-  { label: "العشاء", key: "Isha" }
-];
-
 const STOCKHOLM_PROFILE = {
   latitude: 59.3293,
   longitude: 18.0686,
@@ -41,6 +32,8 @@ const liveClockEl = document.getElementById("live-clock");
 const hijriEl = document.getElementById("hijri");
 const hijriGregorianEl = document.getElementById("hijri-gregorian");
 const weatherCurrentEl = document.getElementById("weather-current");
+const weatherIconEl = document.getElementById("weather-icon");
+const weatherHighLowEl = document.getElementById("weather-high-low");
 const weatherExtraEl = document.getElementById("weather-extra");
 const weatherHoursEl = document.getElementById("weather-hours");
 const weatherDailyEl = document.getElementById("weather-daily");
@@ -53,7 +46,6 @@ const clockMinuteEl = document.getElementById("clock-minute");
 const clockSecondEl = document.getElementById("clock-second");
 const resultEl = document.getElementById("result");
 const timingsBodyEl = document.getElementById("timings-body");
-const timingsHeadRowEl = document.getElementById("timings-head-row");
 const loadBtn = document.getElementById("load-btn");
 const prevDayBtn = document.getElementById("prev-day-btn");
 const nextDayBtn = document.getElementById("next-day-btn");
@@ -73,6 +65,10 @@ const makkahStreamToggleEl = document.getElementById("makkah-stream-toggle");
 const makkahStreamPanelEl = document.getElementById("makkah-stream-panel");
 const makkahStreamPlayerEl = document.getElementById("makkah-stream-player");
 const makkahStreamCloseEl = document.getElementById("makkah-stream-close");
+const makkahBackgroundToggleEl = document.getElementById("makkah-background-toggle");
+const makkahBackgroundHelpEl = document.getElementById("makkah-background-help");
+const contentPanelEl = document.querySelector(".content-panel");
+let useLiveBackground = localStorage.getItem("makkahLiveBackground") === "true";
 
 let currentTimings = null;
 let countdownTimingsByDate = {};
@@ -419,10 +415,12 @@ function clock() {
 function setActivePrayerCell(cell) {
   if (activePrayerCell) {
     activePrayerCell.classList.remove("is-next-prayer");
+    activePrayerCell.removeAttribute("aria-current");
   }
   activePrayerCell = cell;
   if (activePrayerCell) {
     activePrayerCell.classList.add("is-next-prayer");
+    activePrayerCell.setAttribute("aria-current", "true");
   }
 }
 
@@ -503,7 +501,7 @@ function updatePrayerCountdown() {
     const hours = String(Math.floor(remaining / 3600)).padStart(2, "0");
     const minutes = String(Math.floor(remaining / 60) % 60).padStart(2, "0");
     const seconds = String(remaining % 60).padStart(2, "0");
-    nextPrayerLabelEl.textContent = `Next prayer: ${nextPrayer.label} (${nextPrayer.ar})`;
+    nextPrayerLabelEl.textContent = `${nextPrayer.label} (${nextPrayer.ar})`;
     nextPrayerCountdownEl.textContent = `${hours}:${minutes}:${seconds}`;
     nextPrayerTimeEl.textContent = countdownError
       ? `Update failed: ${countdownError}`
@@ -511,7 +509,7 @@ function updatePrayerCountdown() {
   }
 
   const nextPrayerKey = nextPrayer?.dateKey === renderedForDate ? nextPrayer.key : null;
-  const cells = Array.from(timingsBodyEl.querySelectorAll("td[data-prayer-key]"));
+  const cells = Array.from(timingsBodyEl.querySelectorAll("[data-prayer-key]"));
   const nextPrayerCell = cells.find((cell) => cell.dataset.prayerKey === nextPrayerKey) || null;
   setActivePrayerCell(nextPrayerCell);
 }
@@ -595,7 +593,7 @@ function updateMuteButton() {
 
 function setStatus(message, isError = false) {
   statusEl.textContent = message;
-  statusEl.style.color = isError ? "#b91c1c" : "#374151";
+  statusEl.classList.toggle("is-error", isError);
 }
 
 function getWeatherSymbol(code) {
@@ -827,7 +825,7 @@ function renderSlTrafficList(arrivals) {
   }
 
   slTrafficStatusEl.textContent = "";
-  for (const departure of arrivals) {
+  for (const departure of arrivals.slice(0, 2)) {
     const listItem = createSlBoardListItem(departure, {
       fallbackLine: "METRO",
       fallbackDestination: "Kungsträdgården/T-Centralen",
@@ -893,7 +891,7 @@ function renderNorgegatanBusList(arrivals) {
   }
 
   slBusStatusEl.textContent = "";
-  for (const departure of arrivals) {
+  for (const departure of arrivals.slice(0, 2)) {
     const listItem = createSlBoardListItem(departure, {
       fallbackLine: "BUS",
       fallbackDestination: "Kista centrum",
@@ -951,7 +949,7 @@ async function fetchCurrentWeather() {
     `&longitude=${encodeURIComponent(KISTA_PROFILE.longitude)}` +
     `&current=temperature_2m,apparent_temperature,weather_code,wind_speed_10m` +
     `&hourly=temperature_2m,weather_code` +
-    `&daily=weather_code,temperature_2m_max` +
+    `&daily=weather_code,temperature_2m_max,temperature_2m_min` +
     `&timezone=Europe%2FStockholm`;
 
   try {
@@ -968,12 +966,21 @@ async function fetchCurrentWeather() {
     const weatherLabel = getWeatherLabel(Number(current.weather_code));
 
     weatherCurrentEl.textContent = `${roundedTemp}°`;
+    weatherIconEl.textContent = getWeatherSymbol(Number(current.weather_code));
+    const todayIndex = payload.daily?.time?.indexOf(getStockholmIsoDate()) ?? -1;
+    const high = payload.daily?.temperature_2m_max?.[todayIndex];
+    const low = payload.daily?.temperature_2m_min?.[todayIndex];
+    weatherHighLowEl.textContent = typeof high === "number" && typeof low === "number"
+      ? `High ${Math.round(high)}° / Low ${Math.round(low)}°`
+      : "High / low unavailable";
     weatherExtraEl.textContent = `${weatherLabel} • المحسوس ${roundedFeelsLike}° • الرياح ${roundedWind} كم/س`;
     renderUpcomingHourlyWeather(payload?.hourly);
     renderDailyWeather(payload?.daily);
     lastWeatherFetchAt = Date.now();
   } catch (error) {
     weatherCurrentEl.textContent = "--°";
+    weatherIconEl.textContent = "";
+    weatherHighLowEl.textContent = "";
     weatherExtraEl.textContent = error instanceof Error ? error.message : "بيانات الطقس غير متاحة.";
     if (weatherHoursEl) {
       weatherHoursEl.textContent = "";
@@ -990,28 +997,22 @@ function renderTimings(timings) {
   currentTimings = timings;
   lastPlayedPrayer = null; // Reset for new date
   timingsBodyEl.innerHTML = "";
-  const row = document.createElement("tr");
-  for (const column of PRAYER_TABLE_COLUMNS) {
-    const timeCell = document.createElement("td");
-    timeCell.dataset.prayerKey = column.key;
-    timeCell.textContent = formatPrayerTime(timings[column.key]);
-    row.appendChild(timeCell);
+  for (const prayer of PRAYER_KEYS) {
+    const stop = document.createElement("li");
+    stop.dataset.prayerKey = prayer.key;
+    const label = document.createElement("span");
+    label.className = "prayer-stop-label";
+    label.textContent = prayer.label;
+    const time = document.createElement("span");
+    time.className = "prayer-stop-time";
+    time.textContent = formatPrayerTime(timings[prayer.key]);
+    stop.append(label, time);
+    timingsBodyEl.appendChild(stop);
   }
-  timingsBodyEl.appendChild(row);
   resultEl.classList.remove("hidden");
   syncManualTimeInputFromSelection();
   updateManualOverrideNote();
   updatePrayerCountdown();
-}
-
-function initializeTimingsHeader() {
-  if (!timingsHeadRowEl) return;
-  timingsHeadRowEl.innerHTML = "";
-  for (const column of PRAYER_TABLE_COLUMNS) {
-    const headerCell = document.createElement("th");
-    headerCell.textContent = column.label;
-    timingsHeadRowEl.appendChild(headerCell);
-  }
 }
 
 function getTodayDate() {
@@ -1071,8 +1072,8 @@ async function fetchPrayerTimes() {
     }
 
     const effectiveTimings = applyCustomTimings(siteTimings, date);
-    renderTimings(effectiveTimings, "");
     renderedForDate = date;
+    renderTimings(effectiveTimings, "");
     lastPrayerTimesFetchAt = Date.now();
     setStatus("");
   } catch (error) {
@@ -1100,6 +1101,27 @@ function initializeManualPrayerControls() {
   updateManualOverrideNote();
 }
 
+function setMakkahBackground(enabled) {
+  useLiveBackground = enabled;
+  localStorage.setItem("makkahLiveBackground", String(enabled));
+  contentPanelEl.classList.toggle("has-live-background", enabled);
+  makkahBackgroundToggleEl.setAttribute("aria-pressed", String(enabled));
+  makkahBackgroundToggleEl.textContent = enabled ? "Use picture background" : "Use live background";
+  makkahBackgroundHelpEl.hidden = !enabled;
+  makkahStreamToggleEl.hidden = enabled;
+  makkahStreamPanelEl.hidden = !enabled;
+  if (enabled) {
+    makkahStreamPlayerEl.src = "https://www.youtube.com/embed/eC4LfEVxvKg?autoplay=1&mute=1&playsinline=1&rel=0&controls=0";
+    makkahStreamPlayerEl.setAttribute("tabindex", "-1");
+    makkahStreamPanelEl.setAttribute("aria-hidden", "true");
+  } else {
+    makkahStreamPlayerEl.removeAttribute("src");
+    makkahStreamPlayerEl.removeAttribute("tabindex");
+    makkahStreamPanelEl.removeAttribute("aria-hidden");
+  }
+  makkahStreamToggleEl.setAttribute("aria-expanded", "false");
+}
+
 function closeMakkahStream() {
   makkahStreamPanelEl.hidden = true;
   makkahStreamPlayerEl.removeAttribute("src");
@@ -1107,6 +1129,11 @@ function closeMakkahStream() {
   makkahStreamToggleEl.setAttribute("aria-expanded", "false");
   makkahStreamToggleEl.focus();
 }
+
+makkahBackgroundToggleEl.addEventListener("click", () => {
+  setMakkahBackground(!useLiveBackground);
+});
+setMakkahBackground(useLiveBackground);
 
 makkahStreamToggleEl.addEventListener("click", () => {
   makkahStreamPlayerEl.src = "https://www.youtube.com/embed/eC4LfEVxvKg?autoplay=1&mute=1&playsinline=1&rel=0";
@@ -1140,7 +1167,6 @@ adhanAudioEl.addEventListener("ended", () => {
   setStatus("");
 });
 updateDatePicker();
-initializeTimingsHeader();
 initializeManualPrayerControls();
 updateMuteButton();
 fetchPrayerTimes();

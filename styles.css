@@ -1,868 +1,380 @@
-* {
-  box-sizing: border-box;
+:root {
+  color-scheme: dark;
+  --text: #f5f5f2;
+  --muted: #b1b7b6;
+  --emerald: #52d7a0;
+  --transit: #80b6f0;
+  --glass: rgb(20 23 24 / 0.72);
+  --border: 1px solid rgb(255 255 255 / 0.25);
+  --radius: 16px;
+  --space: 16px;
+  --sidebar-width: 360px;
+  --shadow: inset 0 1px 0 rgb(255 255 255 / 0.06), 0 12px 36px rgb(0 0 0 / 0.2);
 }
+
+* { box-sizing: border-box; }
+[hidden], .hidden { display: none !important; }
 
 body {
-  font-weight: 900;
   margin: 0;
-  font-family: Arial, sans-serif;
-  background: #f4f7fb;
-  color: #ffffff;
-  font-size: clamp(14px, 0.8vw + 0.55rem, 18px);
   min-height: 100vh;
+  background: #0b1012;
+  color: var(--text);
+  font-family: "Segoe UI", Arial, sans-serif;
+  font-size: 14px;
+  font-weight: 400;
 }
 
+button, input, select { font: inherit; }
+button, a, input, select { -webkit-tap-highlight-color: transparent; }
+button {
+  padding: 0.65rem 1rem;
+  border: var(--border);
+  border-radius: 999px;
+  background: var(--glass);
+  color: var(--text);
+  cursor: pointer;
+}
+button:hover { background: rgb(55 65 63 / 0.9); }
+:focus-visible { outline: 2px solid var(--emerald); outline-offset: 4px; }
+a { color: var(--text); }
+
 .app-layout {
-  display: grid;
-  grid-template-columns: 20% 80%;
+  display: flex;
+  min-height: 100svh;
+  background: #0b1012;
+}
+
+.main-stage {
+  position: relative;
+  flex: 1;
+  min-width: 0;
   height: 100vh;
   overflow: hidden;
+  background: #111111;
+  isolation: isolate;
+}
+
+.main-stage__background {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  z-index: 0;
+}
+
+.main-stage::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+  background: linear-gradient(180deg, rgba(8, 10, 12, 0.25) 0%, rgba(8, 10, 12, 0.05) 45%, rgba(8, 10, 12, 0.30) 100%);
 }
 
 .visual-panel {
-  display: grid;
-  /*grid-template-rows: repeat(3, minmax(0, 1fr));*/
-  grid-auto-rows: min-content;
-  align-content: start;
-  gap: 0.45rem;
-  background: #f4f7fb;
-  padding: clamp(0.35rem, 1.2vw, 0.75rem);
+  position: relative;
+  z-index: 3;
+  width: var(--sidebar-width);
+  min-width: var(--sidebar-width);
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space);
+  padding: var(--space);
+  overflow-y: auto;
+  scrollbar-width: thin;
+  background: #0b1012;
+  border-right: var(--border);
+}
+
+.visual-panel > section,
+.preview-grid,
+.makkah-stream-panel {
+  border: var(--border);
+  border-radius: var(--radius);
+  background: var(--glass);
+  box-shadow: var(--shadow);
+  backdrop-filter: blur(12px);
 }
 
 .visual-panel > section {
-  min-height: 0;
+  flex-shrink: 0;
+  padding: clamp(12px, 1.2vw, 20px);
 }
 
-.content-panel {
-  background: #f4f7fb;
-  padding: clamp(0.35rem, 1.2vw, 0.75rem);
-
-  background-image: url("./img_2.png");
-  background-repeat: no-repeat;
-  background-position: center;
-  background-size: cover;
-}
-
-.container {
-  max-width: 1120px;
-  margin: 0 auto;
-  background: rgb(255 255 255 / 0);
-  border-radius: 12px;
-  padding: 0;
-  /*box-shadow: 0 10px 25px rgba(0, 0, 0, 0.08);*/
-}
-
-h1 {
-  margin-top: 0;
-  margin-bottom: 0.35rem;
-}
-
-.subtitle {
-  margin-top: 0;
-  color: #4b5563;
-}
-
-.section-label {
-  margin: 0 0 0.35rem;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-  color: #0f766e;
-}
-
+.clock-banner { min-height: 215px; display: flex; flex-direction: column; justify-content: center; }
+.weather-card { min-height: 305px; }
+.sl-traffic-card { min-height: 170px; }
+.content-panel { padding: clamp(28px, 5vh, 54px) 24px; }
+.container { position: relative; z-index: 2; width: min(820px, 100%); margin: 0 auto; }
 .preview-grid {
-  display: grid;
-  grid-template-columns: 1fr;
-  gap: 0.5rem;
-  margin-top: 0.5rem;
-  align-items: stretch;
-}
-
-.clock-card,
-.result {
-  position: relative;
-  border-radius: 14px;
-  padding: 4.6rem;
-  margin-left: 0;
-}
-
-.prayer-countdown {
-  padding: clamp(1rem, 3vw, 2rem);
-  text-align: center;
-  color: #ffffff;
-}
-
-.prayer-countdown-label {
-  margin: 0;
-  font-size: clamp(1rem, 2.2vw, 1.6rem);
-}
-
-.prayer-countdown-time {
-  margin: 0.5rem 0;
-  font-size: clamp(2.2rem, 7vw, 5.5rem);
-  font-variant-numeric: tabular-nums;
-  line-height: 1.1;
-  direction: ltr;
-}
-
-.prayer-countdown-detail {
-  margin: 0;
-  color: #bdebd9;
-  font-size: clamp(0.85rem, 1.5vw, 1.1rem);
-}
-
-.clock-card {
+  min-height: 360px;
+  max-height: 400px;
   display: flex;
   flex-direction: column;
-  justify-content: center;
-  min-height: 100%;
-}
-
-.wall-clock {
-  position: relative;
-  width: min(100%, 260px);
-  aspect-ratio: 1;
-  margin: 0.35rem auto 1rem;
-  border: 8px solid #f9f4ea;
-  border-radius: 50%;
-  background-image:
-    radial-gradient(circle at center, rgba(255, 255, 255, 0.35) 0 44%, transparent 44%),
-    repeating-conic-gradient(from -90deg, rgba(229, 231, 235, 0.8) 0 1deg, transparent 1deg 30deg),
-    linear-gradient(rgba(255, 255, 255, 0.2), rgba(255, 255, 255, 0.2)),
-    url("./img.png");
-  background-position: center;
-  background-repeat: no-repeat;
-  background-size: auto, auto, auto, cover;
-  box-shadow: inset 0 0 0 8px #c9bdae;
-}
-
-.wall-clock::before {
-  content: "";
-  position: absolute;
-  inset: 12px;
-  border-radius: 50%;
-  background:
-    radial-gradient(circle, transparent 0 72%, #cbd5e1 72% 72.8%, transparent 72.8% 100%);
-}
-
-.wall-clock::after {
-  position: absolute;
-  top: 8px;
-  left: 50%;
-  transform: translateX(-50%);
-  color: #6b7280;
-  font-weight: 700;
-}
-
-.wall-clock-center {
-  position: absolute;
-  left: 50%;
-  top: 50%;
-  width: 12px;
-  height: 12px;
-  margin-left: -6px;
-  margin-top: -6px;
-  border-radius: 50%;
-  background: #0f766e;
-  z-index: 3;
-}
-
-.wall-clock-hand {
-  position: absolute;
-  left: 50%;
-  bottom: 50%;
-  transform-origin: 50% 100%;
-  transform: translateX(-50%) rotate(0deg);
-  border-radius: 999px;
-  z-index: 2;
-}
-
-.wall-clock-hour {
-  width: 6px;
-  height: 28%;
-  background: #1f2937;
-}
-
-.wall-clock-minute {
-  width: 4px;
-  height: 38%;
-  background: #0f766e;
-}
-
-.wall-clock-second {
-  width: 2px;
-  height: 42%;
-  background: #dc2626;
-}
-
-.num {
-
-  position: absolute;
-
-  transform: translate(-50%, -50%);
-
-  color: #6b7280;
-
-}
-
-.live-clock {
-  margin: 0;
-}
-
-.live-clock-display {
-  position: relative;
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 0.4rem;
-}
-
-.live-clock-display::before {
-  content: "";
-  position: absolute;
-  left: 50%;
-  top: 50%;
-  transform: translate(-50%, -50%);
-  width: clamp(7px, 1.1vw, 10px);
-  height: clamp(34px, 5vw, 46px);
-  background:
-    radial-gradient(circle, #d1d5db 66%, transparent 69%) 50% 12% / 100% 36% no-repeat,
-    radial-gradient(circle, #d1d5db 66%, transparent 69%) 50% 88% / 100% 36% no-repeat;
-  z-index: 3;
-  pointer-events: none;
-}
-
-.live-clock-display::after {
-  content: "";
-  position: absolute;
-  left: 0;
-  right: 0;
-  top: 50%;
-  height: 2px;
-  transform: translateY(-50%);
-  background: rgb(0 0 0 / 0.45);
-  z-index: 1;
-  pointer-events: none;
-}
-
-.live-clock-tile {
-  position: relative;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  min-height: 104px;
-  border-radius: 14px;
-  background: #121212;
-  border: 1px solid #1f1f1f;
-  box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.06);
-}
-
-.live-clock-number {
-  font-size: clamp(3.2rem, 16vw, 6.2rem);
-  line-height: 0.82;
-  font-weight: 900;
-  letter-spacing: 0.02em;
-  color: #d1d5db;
-}
-
-.live-clock-date {
-  line-height: 1;
-  text-align: center;
-  margin: 2px;
-}
-
-.live-clock-weekday {
-  line-height: 1;
-  text-align: center;
-  margin: 2px;
-}
-
-.hijri {
-  line-height: 1.15;
-  text-align: center;
-  margin: 0.45rem 0 0;
-  font-size: clamp(1.05rem, 1.8vw, 1.45rem);
-  font-weight: 800;
-  color: #f8fafc;
-  text-shadow: 0 1px 4px rgb(0 0 0 / 0.35);
-}
-
-.hijri-gregorian {
-  line-height: 1.1;
-  text-align: center;
-  margin: 0.2rem 0 0;
-  font-size: clamp(0.82rem, 1.3vw, 1rem);
-  font-weight: 700;
-  color: #cbd5e1;
-}
-
-.clock-banner {
-  margin: 0;
-  padding: 0.5rem;
-  border: 1px solid #1e293b;
+  justify-content: space-between;
+  padding: 24px 28px 28px;
   border-radius: 18px;
-  background: #050607;
-  box-shadow: 0 4px 12px rgb(2 6 23 / 0.35);
-  position: sticky;
-  top: 0;
-  z-index: 5;
 }
-
-.result-head {
-  display: none;
-  align-items: center;
-  justify-content: space-between;
-  gap: 1rem;
-  flex-wrap: wrap;
-  margin-bottom: 0.75rem;
-}
-
-.result-head h2 {
-  margin: 0;
-}
-
-.date-nav {
-  display: flex;
-  gap: 0.5rem;
-  align-items: center;
-  flex-wrap: wrap;
-}
-
-.date-nav button {
-  padding: 0.45rem 0.75rem;
-  font-size: 0.95rem;
-}
-
-.date-nav input[type="date"] {
-  padding: 0.45rem 0.6rem;
-  font-size: 0.95rem;
-  border: 1px solid #d1d5db;
-}
-
-.manual-time-controls {
-  display: none;
-  grid-template-columns: minmax(130px, 1fr) minmax(120px, 1fr) auto auto;
-  gap: 0.5rem;
-  margin-bottom: 0.75rem;
-  align-items: center;
-}
-
-.manual-time-controls button {
-  white-space: nowrap;
-}
-
-.manual-override-note {
-  display: none;
-  margin: 0 0 0.75rem;
-  min-height: 1.2rem;
-  color: #d1fae5;
-}
-
-.table-wrap {
-  width: 100%;
-  overflow-x: auto;
-  -webkit-overflow-scrolling: touch;
-}
-
-input,
-select,
-button {
-  font: inherit;
-  padding: 0.6rem 0.7rem;
-  border-radius: 8px;
-}
-
-input,
-select {
-  border: 1px solid #d1d5db;
-}
-
-button {
-  border: 0;
-  background: #0f766e;
-  color: #ffffff;
-  cursor: pointer;
-  font-weight: 600;
-}
-
-button:hover {
-  background: #115e59;
-}
-
-.mute-btn {
-  position: fixed;
-  top: 1rem;
-  right: 1rem;
-  width: 50px;
-  height: 50px;
-  border-radius: 50%;
-  font-size: 1.5rem;
-  padding: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 100;
-  background: #0f766e;
-}
-
-.mute-btn.muted {
-  background: #7f1d1d;
-}
-
-.test-btn {
-  display: none;
-  position: fixed;
-  top: 1rem;
-  right: 60px;
+.prayer-countdown { text-align: center; }
+.section-label {
+  margin: 0 0 8px;
+  color: var(--muted);
   font-size: 0.75rem;
-  padding: 0.5rem 0.8rem;
-  background: #0369a1;
-}
-
-.status {
-  min-height: 1.25rem;
-  margin: 0.5rem 0 0.25rem;
-  color: #374151;
-}
-
-.hidden {
-  display: none;
-}
-
-.makkah-stream-toggle,
-.makkah-stream-panel {
-  position: fixed;
-  right: 1rem;
-  bottom: 1rem;
-  z-index: 90;
-  box-shadow: 0 6px 24px rgb(0 0 0 / 0.3);
-}
-
-.makkah-stream-panel {
-  width: min(400px, calc(100vw - 2rem));
-  max-height: calc(100dvh - 2rem);
-  overflow: auto;
-  border: 1px solid #39856c;
-  border-radius: 12px;
-  background: #051e18;
-  color: #ffffff;
-}
-
-.makkah-stream-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 0.5rem;
-  padding: 0.5rem 0.75rem;
-}
-
-.makkah-stream-header h2 {
-  margin: 0;
-  font-size: 1rem;
-}
-
-.makkah-stream-header button {
-  padding: 0.35rem 0.6rem;
-  font-size: 0.85rem;
-}
-
-#makkah-stream-player {
-  display: block;
-  width: 100%;
-  aspect-ratio: 16 / 9;
-  border: 0;
-  background: #000000;
-}
-
-.makkah-stream-help {
-  margin: 0;
-  padding: 0.5rem 0.75rem;
-  font-size: 0.75rem;
-  font-weight: 400;
-  line-height: 1.4;
-}
-
-.makkah-stream-help a {
-  color: #bdebd9;
-}
-
-table {
-  width: 100%;
-  min-width: 320px;
-  border-collapse: collapse;
-  direction: rtl;
-}
-
-th,
-td {
-  text-align: center;
-  padding: 0.65rem;
-  border: 1px solid #e5e7eb;
-  background: #0000002e;
-}
-
-td[dir="rtl"] {
-  text-align: center;
-}
-
-tbody td.is-next-prayer {
-  background: #176c34;
-}
-
-tbody td.is-next-prayer::after {
-  content: " • next";
-  color: #0aff67;
-  font-weight: 900;
-}
-
-.weather-card {
-  margin: 0;
-  padding: 0.7rem;
-  border: 1px solid rgb(255 255 255 / 0.35);
-  border-radius: 10px;
-  background: linear-gradient(180deg, rgb(129 186 216 / 0.92), rgb(91 150 188 / 0.88));
-  color: #000000;
-  box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.25);
-  overflow: auto;
-}
-
-.weather-title {
-  margin: 0 0 0.45rem;
-  font-size: 1rem;
-  letter-spacing: 0.06em;
-  text-align: center;
-  color: rgb(2 0 0 / 0.92);
-}
-
-.weather-current,
-.weather-extra {
-  margin: 0.1rem 0;
-  text-align: center;
-  color: #000000;
-}
-
-.weather-current {
-  font-size: clamp(2.1rem, 3.2vw, 2.9rem);
-  font-weight: 500;
-  line-height: 1;
-}
-
-.weather-extra {
-  font-size: 0.92rem;
-  margin-bottom: 0.35rem;
-  color: rgb(2 0 0 / 0.96);
-}
-
-.weather-hours,
-.weather-daily {
-  margin: 0.4rem 0 0;
-  padding: 0.5rem;
-  border-radius: 8px;
-  background: rgb(126 170 197 / 0.48);
-}
-
-.weather-section-title {
-  margin: 0 0 0.25rem;
-  text-align: center;
-  font-size: 0.9rem;
-  letter-spacing: 0.05em;
-  color: rgb(0 0 0 / 0.92);
-}
-
-.weather-hours-row {
-  display: grid;
-  grid-template-columns: repeat(var(--weather-cols, 1), minmax(0, 1fr));
-  gap: 0.25rem;
-}
-
-.weather-hour-cell {
-  display: grid;
-  justify-items: center;
-  gap: 0.12rem;
-  padding: 0.18rem 0.08rem;
-  border-radius: 6px;
-  background: rgb(255 255 255 / 0.12);
-}
-
-.weather-hour-time {
-  font-size: 0.8rem;
-  font-weight: 700;
-  color: rgb(0 0 0 / 0.9);
-}
-
-.weather-hour-icon {
-  line-height: 1;
-  font-size: 0.95rem;
-}
-
-.weather-hour-temp {
-  font-size: 0.92rem;
-  font-weight: 700;
-}
-
-.weather-daily-list {
-  display: grid;
-  gap: 0.2rem;
-}
-
-.weather-daily-row {
-  display: grid;
-  grid-template-columns: 1fr auto auto;
-  align-items: center;
-  gap: 0.45rem;
-}
-
-.weather-daily-day {
-  font-size: 0.9rem;
-  color: #000000;
-}
-
-.weather-daily-icon {
-  font-size: 0.95rem;
-  line-height: 1;
-}
-
-.weather-daily-temp {
-  min-width: 2.4ch;
-  text-align: right;
-  font-size: 1.0rem;
-  font-weight: 700;
-  color: #000000;
-}
-
-.sl-traffic-card {
-  width: 100%;
-  max-width: none;
-  margin: 0;
-  padding: 0.5rem;
-  border: 2px solid #1f2937;
-  border-radius: 12px;
-  background: #ffffff;
-  color: #111827;
-  box-shadow: 0 8px 18px rgb(15 23 42 / 0.14);
-  overflow: auto;
-}
-
-.sl-traffic-grid {
-  margin-top: 0;
-  display: grid;
-  grid-template-columns: 1fr;
-  gap: 0.45rem;
-}
-
-.sl-traffic-title {
-  margin: 0 0 0.25rem;
-  font-size: 0.72rem;
-  font-weight: 700;
-  color: #334155;
-  text-transform: uppercase;
   letter-spacing: 0.02em;
 }
-
-.sl-traffic-status {
-  margin: 0.1rem 0 0.3rem;
-  font-size: 0.68rem;
-  color: #64748b;
-}
-
-.sl-traffic-status:empty {
-  display: none;
-}
-
-.sl-traffic-list {
+.prayer-countdown-label {
   margin: 0;
-  padding: 0;
+  font-size: 26px;
+  font-weight: 500;
+}
+.prayer-countdown-time {
+  margin: 12px 0 8px;
+  font-size: clamp(84px, 5vw, 96px);
+  line-height: 1;
+  letter-spacing: 0.025em;
+  font-weight: 300;
+  font-variant-numeric: tabular-nums;
+  direction: ltr;
+}
+.prayer-countdown-detail { margin: 0; color: var(--muted); font-size: 0.8rem; }
+.prayer-countdown-detail:empty { display: none; }
+.result { min-width: 0; }
+
+.prayer-timeline {
+  display: flex;
+  margin: 0;
+  padding: 22px 0 0;
   list-style: none;
 }
-
-.sl-traffic-list li {
-  margin: 0;
-}
-
-.sl-board-item {
-  display: grid;
-  grid-template-columns: auto minmax(0, 1fr) auto;
-  gap: 0.4rem;
-  align-items: center;
-  padding: 0.24rem 0;
-}
-
-.sl-board-item + .sl-board-item {
-  border-top: 1px solid #e2e8f0;
-}
-
-.sl-line-badge {
-  min-width: 42px;
-  padding: 0.22rem 0.35rem;
-  border-radius: 4px;
-  background: #374151;
-  color: #ffffff;
-  text-align: center;
-  font-weight: 900;
-  line-height: 1;
-}
-
-.sl-destination {
+.prayer-timeline li {
+  position: relative;
+  flex: 1;
   min-width: 0;
-  display: block;
-  font-weight: 700;
-  color: #111827;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  padding: 24px 4px 0;
+  text-align: center;
+  color: var(--muted);
+}
+.prayer-timeline li::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: rgb(255 255 255 / 0.22);
+}
+.prayer-timeline li:first-child::before { left: 50%; }
+.prayer-timeline li:last-child::before { right: 50%; }
+.prayer-timeline li::after {
+  content: "";
+  position: absolute;
+  top: -4px;
+  left: calc(50% - 4px);
+  width: 9px;
+  height: 9px;
+  border: 1px solid #89918f;
+  border-radius: 50%;
+  background: #303836;
+}
+.prayer-stop-label, .prayer-stop-time { display: block; }
+.prayer-stop-label { font-size: clamp(0.75rem, 1.1vw, 1rem); }
+.prayer-stop-time {
+  margin-top: 10px;
+  font-size: clamp(0.9rem, 1.5vw, 1.35rem);
+  font-variant-numeric: tabular-nums;
+  color: var(--text);
+}
+.prayer-timeline .is-next-prayer,
+.is-next-prayer .prayer-stop-time { color: var(--emerald); }
+.prayer-timeline .is-next-prayer::after {
+  background: var(--emerald);
+  border-color: var(--emerald);
+  box-shadow: 0 0 0 5px rgb(82 215 160 / 0.13);
 }
 
-.sl-eta {
-  display: inline-flex;
-  align-items: baseline;
-  gap: 0.2rem;
-  color: #111827;
+.live-clock { margin: 0; }
+.live-clock-display { display: flex; align-items: center; justify-content: center; }
+.live-clock-display::before { content: ":"; order: 1; margin: 0 0.03em; }
+.live-clock-hour { order: 0; }
+.live-clock-minute { order: 2; }
+.live-clock-display, .live-clock-number {
+  font-size: clamp(2.5rem, 4.5vw, 5.5rem);
+  font-weight: 600;
+  line-height: 1.15;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.04em;
+}
+.hijri { margin: 14px 0 0; text-align: center; font-size: 0.95rem; line-height: 1.4; }
+.hijri-gregorian { margin: 6px 0 0; text-align: center; font-size: 0.8rem; color: var(--muted); }
+
+.weather-title, .sl-traffic-title {
+  margin: 0;
+  font-size: 0.85rem;
+  font-weight: 500;
+}
+.weather-title { display: flex; justify-content: space-between; gap: 8px; }
+.weather-title span { color: var(--muted); }
+.weather-current { margin: 0; font-size: clamp(2.5rem, 3.8vw, 4rem); font-weight: 300; line-height: 1; }
+.weather-summary { display: flex; align-items: center; gap: 18px; margin-top: 8px; }
+.weather-icon { font-size: 3rem; line-height: 1; }
+.weather-extra { margin: 6px 0; font-size: 0.75rem; color: var(--muted); line-height: 1.6; }
+.weather-high-low { margin: 4px 0 8px; font-size: 0.75rem; color: var(--muted); }
+.weather-outlook { margin-top: 8px; font-size: 0.7rem; color: var(--muted); }
+.weather-outlook summary { cursor: pointer; }
+.weather-section-title { margin: 0 0 8px; color: var(--muted); font-size: 0.7rem; font-weight: 400; }
+.weather-hours { margin-top: 12px; padding-top: 12px; border-top: 1px solid rgb(255 255 255 / 0.16); }
+.weather-hours-row { display: grid; grid-template-columns: repeat(var(--weather-cols, 1), minmax(0, 1fr)); gap: 6px; }
+.weather-hour-cell { display: grid; justify-items: center; gap: 6px; }
+.weather-hour-time { font-size: 0.65rem; color: var(--muted); white-space: nowrap; }
+.weather-hour-icon { font-size: 1rem; }
+.weather-hour-temp { font-size: 0.8rem; }
+.weather-daily { margin-top: 14px; }
+.weather-daily-list { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px 12px; }
+.weather-daily-row { display: grid; grid-template-columns: 1fr auto auto; gap: 4px; align-items: center; font-size: 0.75rem; }
+.weather-daily-day { color: var(--muted); }
+
+.sl-traffic-title { display: flex; align-items: center; gap: 8px; line-height: 1.5; }
+.transit-icon, .sl-line-badge {
+  color: var(--transit);
+  background: rgb(128 182 240 / 0.12);
+  border-radius: 6px;
+  text-align: center;
+  font-weight: 600;
+}
+.transit-icon { display: inline-grid; place-items: center; width: 24px; height: 24px; flex-shrink: 0; font-size: 0.75rem; }
+.sl-traffic-subtitle { margin: 8px 0; font-size: 0.7rem; color: var(--muted); }
+.sl-traffic-status { margin: 8px 0; color: var(--muted); font-size: 0.7rem; line-height: 1.4; }
+.sl-traffic-status:empty { display: none; }
+.sl-traffic-list { margin: 0; padding: 0; list-style: none; }
+.sl-board-item { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: 8px; align-items: center; padding: 7px 0; font-size: 0.75rem; }
+.sl-line-badge { min-width: 32px; padding: 4px; font-size: 0.7rem; }
+.sl-destination { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.sl-eta { display: inline-flex; gap: 3px; align-items: baseline; white-space: nowrap; }
+.sl-eta-value { font-weight: 600; }
+.sl-eta-unit { color: var(--muted); font-size: 0.65rem; }
+
+.result-head, .manual-time-controls, .manual-override-note { display: none; }
+.status { margin: 10px 0 0; padding: 8px 12px; border-radius: 8px; background: var(--glass); color: var(--muted); font-size: 0.8rem; }
+.status:empty { display: none; }
+.status.is-error { color: #ffc1b8; }
+
+.main-stage__controls {
+  position: absolute;
+  bottom: var(--space);
+  right: var(--space);
+  z-index: 2;
+}
+.makkah-stream-controls {
+  position: relative;
+  z-index: 2;
+  display: grid;
+  justify-items: end;
+  gap: 8px;
+}
+.makkah-stream-controls button {
+  font-size: 0.75rem;
+  box-shadow: var(--shadow);
+  backdrop-filter: blur(16px);
+}
+#makkah-background-toggle::before { content: "\25C9"; margin-right: 8px; }
+#makkah-stream-toggle::before { content: "\25B6"; margin-right: 8px; }
+#makkah-background-toggle[aria-pressed="true"] { color: var(--emerald); }
+.makkah-stream-controls a {
+  max-width: 240px;
+  font-size: 0.75rem;
+  padding: 9px 14px;
+  border: var(--border);
+  border-radius: 999px;
+  background: var(--glass);
+  color: var(--muted);
+  text-decoration: none;
+  backdrop-filter: blur(12px);
+}
+.makkah-stream-panel {
+  position: absolute;
+  right: var(--space);
+  bottom: 116px;
+  z-index: 3;
+  width: min(400px, calc(100% - 36px));
+  max-height: calc(100dvh - 140px);
+  overflow: auto;
+}
+.makkah-stream-header { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 12px; }
+.makkah-stream-header h2 { margin: 0; font-size: 0.9rem; font-weight: 500; }
+.makkah-stream-header button { padding: 5px 10px; font-size: 0.75rem; }
+#makkah-stream-player { display: block; width: 100%; aspect-ratio: 16 / 9; border: 0; background: #000000; }
+.makkah-stream-help { padding: 10px 12px; margin: 0; color: var(--muted); font-size: 0.75rem; line-height: 1.5; }
+.has-live-background .makkah-stream-panel {
+  inset: 0;
+  z-index: 0;
+  width: 100%;
+  height: 100%;
+  max-height: none;
+  border: 0;
+  border-radius: 0;
+  pointer-events: none;
+  background: #000000;
+  box-shadow: none;
+  backdrop-filter: none;
+}
+.has-live-background .makkah-stream-header, .has-live-background .makkah-stream-help { display: none; }
+.has-live-background #makkah-stream-player { width: 100%; height: 100%; aspect-ratio: auto; }
+.mute-btn, .test-btn { display: none; }
+
+@media (max-height: 800px) and (min-width: 901px) {
+  :root { --space: 16px; }
+  .visual-panel > section { padding: 12px; }
+  .hijri { margin-top: 8px; }
+  .weather-daily { margin-top: 10px; }
+  .weather-daily-list { gap: 4px; }
+  .sl-board-item { padding: 5px 0; }
+  .prayer-countdown-time { font-size: clamp(3rem, 5.5vw, 5.5rem); }
+  .prayer-timeline li { padding-top: 18px; }
 }
 
-.sl-eta-value {
-  font-size: 1.05em;
-  font-weight: 900;
-  line-height: 1;
+@media (max-width: 1300px) and (min-width: 901px) {
+  .container { width: 100%; max-width: 820px; }
+  .visual-panel > section { padding: 12px; }
+  .content-panel { padding: 24px; }
+  .weather-title { flex-wrap: wrap; }
+  .weather-summary { gap: 8px; }
+  .weather-icon { font-size: 2rem; }
+  .prayer-countdown-time { font-size: clamp(64px, 6.5vw, 84px); }
 }
 
-.sl-eta-unit {
-  font-size: 0.72em;
-  font-weight: 700;
-  text-transform: lowercase;
-}
-
-@media (max-width: 1024px) {
-  .app-layout {
-    grid-template-columns: 1fr;
-  }
-
+@media (max-width: 900px) {
+  .app-layout { flex-direction: column; }
+  .content-panel { order: -1; flex: none; min-height: 85svh; padding: 20px; }
+  .container { width: 100%; max-width: 820px; }
+  .preview-grid { min-height: 320px; max-height: none; }
   .visual-panel {
-    grid-template-rows: auto;
-    min-height: 34vh;
-  }
-
-  .container {
-    max-width: 100%;
-  }
-}
-
-@media (max-width: 760px) {
-  .app-layout {
-    height: auto;
-    overflow: visible;
-  }
-
-  .visual-panel {
-    min-height: 0;
-  }
-
-  .preview-grid {
-    grid-template-columns: 1fr;
-  }
-
-  .result,
-  .clock-card {
-    padding: 0.75rem;
-  }
-
-  .result-head {
-    flex-direction: column;
-    align-items: stretch;
-  }
-
-  .date-nav {
-    justify-content: space-between;
-  }
-
-  .date-nav button,
-  .date-nav input[type="date"],
-  #load-btn {
+    position: relative;
     width: 100%;
+    min-width: 0;
+    height: auto;
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    overflow: visible;
+    border-right: 0;
+    border-top: var(--border);
+    padding-bottom: 130px;
   }
-
-  .manual-time-controls {
-    grid-template-columns: 1fr;
-  }
-
-  .clock-banner {
-    position: static;
-    top: auto;
-    z-index: auto;
-    padding: 0.4rem;
-    border-radius: 12px;
-  }
-
-  .live-clock-display {
-    gap: 0.3rem;
-  }
-
-  .live-clock-display::before {
-    width: 7px;
-    height: 32px;
-  }
-
-  .live-clock-tile {
-    min-height: 82px;
-    border-radius: 10px;
-  }
-
-  .live-clock-number {
-    font-size: clamp(2.2rem, 13vw, 3.1rem);
-  }
-
-  .hijri {
-    margin-top: 0.3rem;
-    font-size: clamp(0.95rem, 3.6vw, 1.2rem);
-  }
-
-  .hijri-gregorian {
-    font-size: clamp(1.05rem, 1.8vw, 1.45rem);
-  }
-
-  .sl-traffic-grid {
-    grid-template-columns: 1fr;
-  }
-
-  .mute-btn {
-    width: 44px;
-    height: 44px;
-    font-size: 1.25rem;
-    top: 0.6rem;
-    right: 0.6rem;
-  }
-
-  .test-btn {
-    top: 3.9rem;
-    right: 0.6rem;
-    font-size: 0.75rem;
-    padding: 0.45rem 0.7rem;
-  }
-
-  th,
-  td {
-    padding: 0.5rem;
-    font-size: 0.95rem;
-  }
+  .live-clock-display, .live-clock-number { font-size: clamp(3rem, 8vw, 5rem); }
+  .prayer-countdown-time { font-size: clamp(3rem, 10vw, 5.5rem); }
 }
 
-@media (max-width: 480px) {
-  .visual-panel {
-    gap: 0.35rem;
-    padding: 0.35rem;
-  }
-
-  .container {
-    padding: 0.6rem;
-    margin: 0.5rem auto;
-  }
-
-  .weather-card {
-    padding: 0.55rem;
-  }
-
-  .weather-title {
-    font-size: 0.9rem;
-  }
-
-  .weather-current {
-    font-size: clamp(1.9rem, 10vw, 2.4rem);
-  }
+@media (max-width: 540px) {
+  :root { --space: 16px; }
+  .content-panel { padding: 16px 10px; }
+  .preview-grid { min-height: 280px; padding: 20px 10px; }
+  .prayer-timeline li { padding: 18px 1px 0; }
+  .prayer-stop-label { font-size: 0.65rem; }
+  .prayer-stop-time { font-size: 0.85rem; }
+  .visual-panel { grid-template-columns: 1fr; }
+  .visual-panel > section { padding: 18px; }
+  .weather-current { font-size: 3rem; }
+  .weather-hours-row { gap: 12px; }
 }
