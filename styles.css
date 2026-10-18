@@ -85,6 +85,31 @@ h1 {
   margin-left: 0;
 }
 
+.prayer-countdown {
+  padding: clamp(1rem, 3vw, 2rem);
+  text-align: center;
+  color: #ffffff;
+}
+
+.prayer-countdown-label {
+  margin: 0;
+  font-size: clamp(1rem, 2.2vw, 1.6rem);
+}
+
+.prayer-countdown-time {
+  margin: 0.5rem 0;
+  font-size: clamp(2.2rem, 7vw, 5.5rem);
+  font-variant-numeric: tabular-nums;
+  line-height: 1.1;
+  direction: ltr;
+}
+
+.prayer-countdown-detail {
+  margin: 0;
+  color: #bdebd9;
+  font-size: clamp(0.85rem, 1.5vw, 1.1rem);
+}
+
 .clock-card {
   display: flex;
   flex-direction: column;

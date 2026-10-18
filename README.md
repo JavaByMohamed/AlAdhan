@@ -20,6 +20,11 @@ If a selected date is missing from that local timetable, the app falls back to t
 You can also manually set prayer times for any selected date from the UI.
 Manual values are saved in your browser and override timetable values for that date until cleared.
 
+The next-prayer display counts down every second in `HH:MM:SS`, using Europe/Stockholm
+time and any manual overrides. It skips sunrise and uses the following day's actual
+Fajr time after Isha, including across daylight-saving changes. The countdown always
+tracks the live next prayer, independently of the date selected for the timetable.
+
 ## Run
 
 Open `index.html` in your browser.

@@ -66,8 +66,15 @@ const manualTimeInputEl = document.getElementById("manual-time-input");
 const setManualTimeBtn = document.getElementById("set-manual-time-btn");
 const clearManualTimesBtn = document.getElementById("clear-manual-times-btn");
 const manualOverrideNoteEl = document.getElementById("manual-override-note");
+const nextPrayerLabelEl = document.getElementById("next-prayer-label");
+const nextPrayerCountdownEl = document.getElementById("next-prayer-countdown");
+const nextPrayerTimeEl = document.getElementById("next-prayer-time");
 
 let currentTimings = null;
+let countdownTimingsByDate = {};
+let countdownFetchInFlight = false;
+let lastCountdownFetchAt = 0;
+let countdownError = "";
 let renderedForDate = null;
 let activePrayerCell = null;
 let fetchInFlight = false;
@@ -243,6 +250,7 @@ function handleSetManualPrayerTime() {
   renderTimings(updatedTimings);
   renderedForDate = dateKey;
   updateManualOverrideNote();
+  updatePrayerCountdown();
 
   const prayerLabel = PRAYER_KEYS.find((prayer) => prayer.key === prayerKey)?.label || prayerKey;
   setStatus(`${prayerLabel} set to ${timeValue} for ${datePickerEl.value}.`);
@@ -258,6 +266,7 @@ function handleClearManualPrayerTimes() {
   delete customTimingsByDate[dateKey];
   saveCustomTimingsByDate();
   updateManualOverrideNote();
+  updatePrayerCountdown();
   setStatus(`Manual times cleared for ${datePickerEl.value}.`);
   fetchPrayerTimes();
 }
@@ -413,28 +422,94 @@ function setActivePrayerCell(cell) {
   }
 }
 
-function updateNextPrayerHighlight() {
-  if (!currentTimings) {
-    setActivePrayerCell(null);
-    return;
+function getNextStockholmDateKey(date = new Date()) {
+  const { year, month, day } = getStockholmParts(date);
+  return getStockholmDateKey(new Date(Date.UTC(Number(year), Number(month) - 1, Number(day) + 1, 12)));
+}
+
+function getPrayerTimestamp(dateKey, time) {
+  const [day, month, year] = dateKey.split("-").map(Number);
+  const [hour, minute] = time.split(":").map(Number);
+  const wallTime = Date.UTC(year, month - 1, day, hour, minute);
+  let timestamp = wallTime;
+  // Resolve the Stockholm UTC offset on the target date, including DST changes.
+  for (let attempt = 0; attempt < 3; attempt += 1) {
+    const parts = getStockholmParts(new Date(timestamp));
+    const representedTime = Date.UTC(
+      Number(parts.year), Number(parts.month) - 1, Number(parts.day),
+      Number(parts.hour), Number(parts.minute), Number(parts.second)
+    );
+    timestamp += wallTime - representedTime;
+  }
+  return timestamp;
+}
+
+function findNextPrayer(now = new Date()) {
+  for (const dateKey of [getStockholmDateKey(now), getNextStockholmDateKey(now)]) {
+    const timings = countdownTimingsByDate[dateKey];
+    if (!timings) return null;
+    const effectiveTimings = applyCustomTimings(timings, dateKey);
+    const upcoming = PRAYER_KEYS.filter((prayer) => prayer.key !== "Sunrise")
+      .map((prayer) => {
+        const time = normalizePrayerTime(effectiveTimings[prayer.key]);
+        return time ? { ...prayer, dateKey, time, timestamp: getPrayerTimestamp(dateKey, time) } : null;
+      })
+      .filter((prayer) => prayer && prayer.timestamp >= now.getTime())
+      .sort((a, b) => a.timestamp - b.timestamp);
+    if (upcoming.length > 0) return upcoming[0];
+  }
+  return null;
+}
+
+async function fetchCountdownTimings() {
+  if (countdownFetchInFlight) return;
+  countdownFetchInFlight = true;
+  lastCountdownFetchAt = Date.now();
+  try {
+    const now = new Date();
+    const localTimetable = await loadIslamiskaTimetableByDate();
+    const today = getStockholmDateKey(now);
+    const tomorrow = getNextStockholmDateKey(now);
+    for (const dateKey of [today, tomorrow]) {
+      countdownTimingsByDate[dateKey] = localTimetable[dateKey] || await loadAlAdhanTimingsForDate(dateKey);
+    }
+    countdownTimingsByDate = {
+      [today]: countdownTimingsByDate[today],
+      [tomorrow]: countdownTimingsByDate[tomorrow]
+    };
+    countdownError = "";
+  } catch (error) {
+    countdownError = error instanceof Error ? error.message : "Unable to load prayer times.";
+    console.error("Next prayer countdown:", error);
+  } finally {
+    countdownFetchInFlight = false;
+    updatePrayerCountdown();
+  }
+}
+
+function updatePrayerCountdown() {
+  const now = new Date();
+  const nextPrayer = findNextPrayer(now);
+  if (!nextPrayer) {
+    nextPrayerLabelEl.textContent = countdownError ? "Next prayer unavailable" : "Loading next prayer...";
+    nextPrayerCountdownEl.textContent = "--:--:--";
+    nextPrayerTimeEl.textContent = countdownError;
+  } else {
+    const remaining = Math.max(0, Math.ceil((nextPrayer.timestamp - now.getTime()) / 1000));
+    const hours = String(Math.floor(remaining / 3600)).padStart(2, "0");
+    const minutes = String(Math.floor(remaining / 60) % 60).padStart(2, "0");
+    const seconds = String(remaining % 60).padStart(2, "0");
+    nextPrayerLabelEl.textContent = `Next prayer: ${nextPrayer.label} (${nextPrayer.ar})`;
+    nextPrayerCountdownEl.textContent = `${hours}:${minutes}:${seconds}`;
+    nextPrayerTimeEl.textContent = countdownError
+      ? `Update failed: ${countdownError}`
+      : "";
   }
 
-  const nowMinutes = getStockholmMinutes();
-  const prayerTimes = PRAYER_KEYS.map((prayer) => ({
-    key: prayer.key,
-    minutes: parsePrayerMinutes(currentTimings[prayer.key])
-  }));
-
-  let nextIndex = prayerTimes.findIndex((prayer) => prayer.minutes !== null && prayer.minutes >= nowMinutes);
-  if (nextIndex === -1) nextIndex = 0;
-
-  const nextPrayerKey = prayerTimes[nextIndex]?.key;
+  const nextPrayerKey = nextPrayer?.dateKey === renderedForDate ? nextPrayer.key : null;
   const cells = Array.from(timingsBodyEl.querySelectorAll("td[data-prayer-key]"));
   const nextPrayerCell = cells.find((cell) => cell.dataset.prayerKey === nextPrayerKey) || null;
   setActivePrayerCell(nextPrayerCell);
-  
-  // Check if it's time to play Adhan
-  checkAndPlayAdhan();
 }
 
 function getLiveClockTimeKey() {
@@ -922,7 +997,7 @@ function renderTimings(timings) {
   resultEl.classList.remove("hidden");
   syncManualTimeInputFromSelection();
   updateManualOverrideNote();
-  updateNextPrayerHighlight();
+  updatePrayerCountdown();
 }
 
 function initializeTimingsHeader() {
@@ -957,6 +1032,7 @@ function setPreviousDay() {
   selectedDate.setDate(selectedDate.getDate() - 1);
   updateDatePicker();
   fetchPrayerTimes();
+  fetchCountdownTimings();
 }
 
 function setNextDay() {
@@ -983,8 +1059,8 @@ async function fetchPrayerTimes() {
     if (!siteTimings) {
       const apiTimings = await loadAlAdhanTimingsForDate(date);
       const effectiveTimings = applyCustomTimings(apiTimings, date);
-      renderTimings(effectiveTimings, "");
       renderedForDate = date;
+      renderTimings(effectiveTimings, "");
       lastPrayerTimesFetchAt = Date.now();
       setStatus("Local timetable missing for this date, using API fallback.");
       return;
@@ -1048,16 +1124,29 @@ fetchCurrentWeather();
 fetchSlTrafficDepartures();
 fetchNorgegatanBusArrivals();
 
+let lastObservedStockholmDate = getTodayDate();
 clock();
 updateClock();
 setInterval(() => {
   clock();
   updateClock();
-  updateNextPrayerHighlight();
+  updatePrayerCountdown();
+  checkAndPlayAdhan();
+
+  if (Date.now() - lastCountdownFetchAt >= PRAYER_TIMES_REFRESH_MS ||
+      (!countdownTimingsByDate[getTodayDate()] && !countdownError)) {
+    fetchCountdownTimings();
+  }
 
   const currentDate = getTodayDate();
-  if (!fetchInFlight && renderedForDate && currentDate !== renderedForDate) {
-    fetchPrayerTimes();
+  if (currentDate !== lastObservedStockholmDate) {
+    if (getSelectedDateFormatted() === lastObservedStockholmDate) {
+      const { year, month, day } = getStockholmParts();
+      selectedDate = new Date(Number(year), Number(month) - 1, Number(day));
+      updateDatePicker();
+      fetchPrayerTimes();
+    }
+    lastObservedStockholmDate = currentDate;
   }
 
   const viewingToday = getSelectedDateFormatted() === currentDate;

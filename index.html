@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>AlAdhan - Daily Prayer Times</title>
-  <link rel="stylesheet" href="./styles.css?v=20260901-1" />
+  <link rel="stylesheet" href="./styles.css?v=20261018-1" />
 </head>
 <body>
   <main class="app-layout">
@@ -36,6 +36,11 @@
     <section class="content-panel">
       <div class="container">
         <div class="preview-grid">
+          <section class="prayer-countdown" aria-labelledby="next-prayer-label">
+            <p id="next-prayer-label" class="prayer-countdown-label" aria-live="polite">Loading next prayer...</p>
+            <p id="next-prayer-countdown" class="prayer-countdown-time" role="timer" aria-live="off" aria-label="Time remaining until next prayer">--:--:--</p>
+            <p id="next-prayer-time" class="prayer-countdown-detail"></p>
+          </section>
           <section class="result" id="result">
             <div class="result-head">
               <div class="date-nav">
@@ -78,6 +83,6 @@
   <button id="mute-btn" class="mute-btn" type="button" title="Toggle Adhan sound" style="display: none">🔊</button>
   <button id="test-adhan-btn" class="test-btn" type="button" title="Test Adhan sound">🔈 Test</button>
 
-  <script src="./app.js?v=20260901-1"></script>
+  <script src="./app.js?v=20261018-1"></script>
 </body>
 </html>
